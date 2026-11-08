@@ -2,7 +2,27 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <!-- 1本指でのスクロールは許可し、ピンチズームだけを禁止する -->
+  <style>
+    html, body { touch-action: pan-x pan-y; }
+  </style>
+  <!-- iOS Safari / ホーム画面PWA向け: 2本指の拡大縮小を防ぐ -->
+  <script>
+    (() => {
+      function preventPinch(event) {
+        if (event.cancelable) event.preventDefault();
+      }
+      function preventMultitouch(event) {
+        if (event.touches && event.touches.length > 1) preventPinch(event);
+      }
+      for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
+        document.addEventListener(type, preventPinch, { passive: false });
+      }
+      document.addEventListener("touchstart", preventMultitouch, { passive: false });
+      document.addEventListener("touchmove", preventMultitouch, { passive: false });
+    })();
+  </script>
   <title>小役カウンター</title>
 
   <!-- ホーム画面のアプリアイコン（GitHub Pagesのサブパスでも動く相対パス） -->
@@ -22,6 +42,8 @@
 </head>
 
 <body>
+  <!-- iOSホーム画面PWAで上端にかかるぼかしを抑えるための非表示の固定要素 -->
+  <div class="ios-pwa-top-blur-fix" aria-hidden="true"></div>
   <div class="container">
 
     <!-- ヘッダー：画面上部に固定（中央部分だけスクロール） -->
@@ -86,9 +108,9 @@
               <h2 id="count-history-heading">履歴</h2>
               <div class="count-history-actions">
                 <button type="button" id="count-undo" class="count-history-button"
-                        aria-label="元に戻す" disabled>↶ 戻る</button>
+                        aria-label="元に戻す" disabled>← 戻る</button>
                 <button type="button" id="count-redo" class="count-history-button"
-                        aria-label="やり直す" disabled>↷ やり直し</button>
+                        aria-label="やり直す" disabled>→ やり直し</button>
               </div>
             </div>
             <div class="count-history-table-wrap">
@@ -231,8 +253,8 @@
             <div class="theme-setting">
               <span class="theme-setting-label">画面テーマ</span>
               <div class="theme-toggle">
-                <button type="button" class="theme-option" id="light-theme">☀ ライト</button>
-                <button type="button" class="theme-option" id="dark-theme">☾ ダーク</button>
+                <button type="button" class="theme-option" id="light-theme"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg><span>ライト</span></button>
+                <button type="button" class="theme-option" id="dark-theme"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 13a8.5 8.5 0 0 1-9.5-9.5A8.5 8.5 0 1 0 20.5 13Z"></path></svg><span>ダーク</span></button>
               </div>
             </div>
 
@@ -258,22 +280,22 @@
       <div class="bottom-tabs-inner" role="tablist" aria-label="画面の切り替え">
         <button type="button" class="tab-button active" id="tab-counter" role="tab"
                 aria-controls="main-screen" aria-selected="true" tabindex="0" data-tab="counter">
-          <span class="tab-icon" aria-hidden="true">▦</span>
+          <span class="tab-icon" aria-hidden="true"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M8 7v3M12 7v3M16 7v3M7 15h10M7 18h10"></path></svg></span>
           <span class="tab-label">カウンター</span>
         </button>
         <button type="button" class="tab-button" id="tab-memo" role="tab"
                 aria-controls="memo-screen" aria-selected="false" tabindex="-1" data-tab="memo">
-          <span class="tab-icon" aria-hidden="true">✎</span>
+          <span class="tab-icon" aria-hidden="true"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 4h8a2 2 0 0 1 2 2v14H6V6a2 2 0 0 1 2-2Z"></path><path d="M9 9h6M9 13h6M9 17h4"></path></svg></span>
           <span class="tab-label">メモ</span>
         </button>
         <button type="button" class="tab-button" id="tab-probability" role="tab"
                 aria-controls="probability-screen" aria-selected="false" tabindex="-1" data-tab="probability">
-          <span class="tab-icon" aria-hidden="true">%</span>
+          <span class="tab-icon" aria-hidden="true"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 19 19 5"></path><circle cx="7" cy="7" r="2.5"></circle><circle cx="17" cy="17" r="2.5"></circle></svg></span>
           <span class="tab-label">設定判別</span>
         </button>
         <button type="button" class="tab-button" id="tab-settings" role="tab"
                 aria-controls="settings-screen" aria-selected="false" tabindex="-1" data-tab="settings">
-          <span class="tab-icon" aria-hidden="true">⚙</span>
+          <span class="tab-icon" aria-hidden="true"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 2.5 14 4l2.5-.3.8 2.3 2.3 1 .2 2.5 1.7 2-1.7 2-.2 2.5-2.3 1-.8 2.3-2.5-.3-2 1.5-2-1.5-2.5.3-.8-2.3-2.3-1-.2-2.5L2.5 12l1.7-2 .2-2.5 2.3-1 .8-2.3L10 4z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
           <span class="tab-label">設定</span>
         </button>
       </div>

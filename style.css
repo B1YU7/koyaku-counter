@@ -56,18 +56,6 @@ h1 {
   margin: 0;
 }
 
-/* 設定ボタン */
-.settings-button {
-  padding: 10px 15px;
-  border: none;
-  border-radius: 10px;
-  background: #52647f;
-  color: white;
-  font-size: 15px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
 /* 全カウンターを0にするボタン */
 .reset-all-button {
   padding: 10px 13px;
@@ -93,10 +81,12 @@ h1 {
 
 /* カウンター一覧 */
 .counter-list {
-  display: grid;
-  /* 設定で選んだ列数を、スマホでもそのまま適用する */
-  grid-template-columns: repeat(var(--counter-columns, 1), minmax(0, 1fr));
-  column-gap: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  /* 列数を固定し、端数の行だけ中央に寄せる */
+  --counter-gap: 24px;
+  column-gap: var(--counter-gap);
   row-gap: 48px; /* 小役同士の縦間隔をさらに広げる */
   /* カウントボタンの大きさ。列数ごとに上書きする */
   --counter-size: 150px;
@@ -112,10 +102,17 @@ h1 {
 
 /* 1つ分の幅もカウントボタンに合わせて中央に置く */
 .counter-item {
+  flex: 0 0 calc((100% - (var(--counter-columns, 1) - 1) * var(--counter-gap)) / var(--counter-columns, 1));
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* フレックス配置でも、ボタンと名前の最大幅は従来のまま */
+.counter-item .counter,
+.counter-item .title {
   width: 100%;
   max-width: var(--counter-size);
-  justify-self: center;
-  min-width: 0;
 }
 
 
@@ -280,47 +277,10 @@ h1 {
 
 
 /* =====================================
-   設定画面
-===================================== */
-
-/* 設定画面のヘッダー */
-.settings-header {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 15px;
-}
-
-/* 設定タイトル */
-.settings-header h2 {
-  margin: 0;
-  font-size: 22px;
-}
-
-/* 戻るボタン */
-.back-button {
-  padding: 10px 15px;
-  border: none;
-  border-radius: 10px;
-  background: #52647f;
-  color: white;
-  font-size: 15px;
-  cursor: pointer;
-}
-
-/* 設定画面の説明文 */
-.description {
-  color: #666;
-  font-size: 14px;
-  margin-bottom: 20px;
-}
-
-
-/* =====================================
    カウンター設定一覧
 ===================================== */
 
-/* 小役全体を1つの設定枠にまとめる */
+/* 共通カウンターとモード別カウンターの設定枠 */
 .counter-settings-group {
   display: flex;
   flex-direction: column;
@@ -346,60 +306,6 @@ h1 {
   color: var(--text, #222);
 }
 
-.reorder-toggle {
-  /* 「並び替え・削除」と「完了」で横幅が変わらないように固定 */
-  flex: 0 0 132px;
-  width: 132px;
-  min-width: 132px;
-  text-align: center;
-  white-space: nowrap;
-  padding: 9px 13px;
-  border: 1px solid var(--border, #ddd);
-  border-radius: 8px;
-  background: var(--surface-soft, #f8f8f8);
-  color: var(--text, #222);
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.reorder-toggle[aria-pressed="true"] {
-  border-color: var(--text, #222);
-  font-weight: bold;
-}
-
-/* 選択モードの上下ボタンは全体で1組だけ */
-.reorder-tools {
-  order: 2; /* 通常時の「追加」ボタンと同じ位置 */
-  flex: 0 0 54px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  height: 54px;
-  min-width: 0;
-  margin: 14px 0 0;
-  padding: 0 6px;
-  border-radius: 8px;
-  background: var(--surface-soft, #f8f8f8);
-}
-
-.reorder-status {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--muted, #666);
-}
-
-/* 上下・削除のタップ領域を確保し、押し間違いを防ぐ */
-.reorder-controls {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 12px;
-}
 
 /* 設定項目を個別のカードにしない */
 .settings-list {
@@ -420,81 +326,12 @@ h1 {
   border-bottom: 0;
 }
 
-/* 並び替え対象の小役を目立たせる */
+
 .setting-item.selected {
   border-radius: 8px;
   background: var(--surface-soft, #f8f8f8);
 }
 
-.reorder-select-item {
-  height: 46px; /* 通常の小役名入力行と同じ高さ */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text, #222);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.setting-item.selected .reorder-select-item {
-  outline: 2px solid var(--text, #222);
-  outline-offset: 2px;
-  font-weight: bold;
-}
-
-/* 選択モードでも通常の「小役名入力欄」と完全に同じ位置・寸法にする */
-.reorder-select-name {
-  flex: 1 1 0;
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  width: auto;
-  height: 44px;
-  padding: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border: 1px solid var(--border, #ccc);
-  border-radius: 8px;
-  background: var(--input-bg, #fff);
-  font-size: 16px;
-  font-weight: normal;
-}
-
-/* 色ボタンと同じ46pxの外枠・34pxの色見本を表示する */
-.reorder-select-color-slot {
-  flex: 0 0 46px;
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  padding: 5px;
-  border: 1px solid var(--border, #ddd);
-  border-radius: 10px;
-  background: var(--surface, #fff);
-}
-.reorder-select-preview {
-  display: block;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--border, #ccc);
-  border-radius: 6px;
-}
-
-/* 設定項目のラベル */
-.setting-label {
-  display: block;
-  font-size: 14px;
-  color: #666;
-  flex: 1;
-}
 
 /* 名前入力欄の左に通番を置く */
 .setting-number {
@@ -510,7 +347,7 @@ h1 {
 
 /* 小役名入力欄と色変更ボタンの横並び */
 .setting-name-row {
-  height: 46px; /* 選択モードでも各行の高さを変えない */
+  height: 46px; /* 小役名入力欄と色変更ボタンの高さを揃える */
   position: relative;
   display: flex;
   align-items: center;
@@ -536,26 +373,6 @@ h1 {
   border-color: #52647f;
 }
 
-
-/* 並び替え・削除モード内で共通の削除ボタンを使用 */
-.reorder-delete-button {
-  flex: 0 0 102px;
-  width: 102px;
-  height: 44px;
-  padding: 0 6px;
-  border: none;
-  border-radius: 8px;
-  background: #d9534f;
-  color: #fff;
-  font-size: 13px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.reorder-delete-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
 
 /* =====================================
    カウンター追加ボタン
@@ -628,6 +445,11 @@ h1 {
   width: 100%;
   margin-top: 0;
   padding: 15px;
+  /* 色数を維持したまま大きく表示し、パネル内をスクロール可能に */
+  max-height: min(60dvh, 470px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 
   background: #f8f8f8;
 
@@ -647,12 +469,11 @@ h1 {
    カラーマトリクス
 ===================================== */
 
-/* 15列×6行の色一覧 */
+/* 90色は維持。少ない列数にして、各色のタップ領域を広げる */
 .color-matrix {
   display: grid;
-  grid-template-columns: repeat(15, minmax(0, 1fr));
-
-  gap: 2px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
   margin-bottom: 15px;
 }
 
@@ -661,10 +482,11 @@ h1 {
   width: 100%;
   aspect-ratio: 1;
   min-width: 0;
+  min-height: 28px;
   padding: 0;
-
-  border: none;
-
+  border: 1px solid rgba(0, 0, 0, .15);
+  border-radius: 5px;
+  touch-action: manipulation;
   cursor: pointer;
 }
 
@@ -672,7 +494,8 @@ h1 {
 .matrix-swatch.selected {
   outline: 2px solid #222;
   outline-offset: -2px;
-  transform: scale(0.9);
+  /* 選択してもマスの大きさが変わらないようにする */
+  outline-offset: 2px;
 }
 
 
@@ -814,7 +637,7 @@ h1 {
 
   /* スマホでも選択した1～6列を維持する */
   .counter-list {
-    column-gap: 14px;
+    --counter-gap: 14px;
     row-gap: 40px; /* スマホでも上下の小役の間隔を広げる */
   }
 
@@ -825,7 +648,7 @@ h1 {
   .counter-list[data-columns="6"] { --counter-size: 55px; }
   /* 5・6列はスマホでボタンがつぶれないように列間隔を詰める */
   .counter-list[data-columns="5"],
-  .counter-list[data-columns="6"] { column-gap: 5px; }
+  .counter-list[data-columns="6"] { --counter-gap: 5px; }
 
 
   .counter-list[data-columns="3"] .number { font-size: clamp(24px, 7vw, 38px); }
@@ -838,16 +661,13 @@ h1 {
     gap: 8px;
   }
 
-  .app-header h1 {
-    font-size: 20px;
-  }
+  
 
   .header-actions {
     gap: 5px;
   }
 
-  .reset-all-button,
-  .settings-button {
+  .reset-all-button {
     padding: 9px 10px;
     font-size: 13px;
   }
@@ -860,7 +680,11 @@ h1 {
 
   /* カラーピッカーの余白を調整 */
   .color-picker-panel {
-    padding: 8px;
+    padding: 10px;
+  }
+  .color-matrix {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 7px;
   }
 
 }
@@ -871,37 +695,13 @@ h1 {
 ===================================== */
 
 /* 上へ・下へ移動するボタン */
-.reorder-button {
-  flex: 0 0 72px;
-  width: 72px;
-  height: 44px;
-  padding: 0;
 
-  display: grid;
-  place-items: center;
-
-  border: 1px solid var(--border, #ddd);
-  border-radius: 8px;
-
-  background: var(--surface-soft, #f8f8f8);
-  color: var(--text, #333);
-
-  font-size: 20px;
-  font-weight: bold;
-  cursor: pointer;
-}
 
 /* ボタンを押したとき */
-.reorder-button:active:not(:disabled) {
-  transform: scale(0.95);
-  opacity: 0.85;
-}
+
 
 /* 先頭・末尾で移動できないボタン */
-.reorder-button:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
+
 
 /* =====================================
    ボタンを押したときの共通アニメーション
@@ -994,25 +794,12 @@ html, body {
   padding: 20px 0 24px;
 }
 
-.screen-heading {
-  font-size: 22px;
-  margin: 0 0 14px;
-}
-
-.placeholder-text {
-  padding: 20px;
-  margin: 0;
-  color: var(--muted, #666);
-  background: var(--surface, #fff);
-  border: 1px solid var(--border, #ddd);
-  border-radius: 12px;
-}
 
 /* 画面下部の4タブ：スクロール領域の外に置いて固定する */
 .bottom-tabs {
   flex: 0 0 auto;
   width: 100%;
-  padding: 7px 8px calc(7px + env(safe-area-inset-bottom, 0px));
+  padding: 5px 8px calc(5px + env(safe-area-inset-bottom, 0px));
   background: var(--surface, #fff);
   border-top: 1px solid var(--border, #ddd);
   z-index: 30;
@@ -1031,10 +818,10 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
-  min-height: 54px;
-  padding: 6px 2px;
+  min-height: 48px;
+  padding: 4px 2px;
   border: none;
   border-radius: 10px;
   background: transparent;
@@ -1120,7 +907,7 @@ html, body {
 }
 
 
-/* 画面幅が狭いときは設定行を折り返して操作しやすくする */
+/* 旧スタイル：400px以下の縦積み指定。末尾の表示設定で横並びへ上書きする。 */
 @media (max-width: 400px) {
   .shape-setting, .column-setting {
     flex-direction: column;
@@ -1139,28 +926,6 @@ html, body {
     width: 100%;
   }
 
-  /* 編集モードでも操作欄を折り返さず、枠の高さを維持 */
-  .reorder-tools {
-    flex-wrap: nowrap;
-  }
-
-  .reorder-status {
-    flex: 1 1 auto;
-  }
-}
-
-/* =====================================
-   狭い画面でも拡大した操作ボタンが枠からはみ出ないように調整
-===================================== */
-@media (max-width: 400px) {
-  .reorder-tools {
-    padding-left: 2px;
-    padding-right: 2px;
-  }
-
-  .reorder-controls {
-    gap: 7px;
-  }
 }
 
 
@@ -1488,9 +1253,8 @@ html, body {
   color: var(--text, #222);
 }
 .number-size-setting-label { font-size: 15px; font-weight: bold; }
-.number-size-control { display: flex; align-items: center; gap: 10px; min-width: 130px; }
-.number-size-slider { width: 140px; max-width: 38vw; accent-color: #52647f; }
-.number-size-control output { width: 40px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+
+
 /* 実寸プレビューは設定の4行と独立させ、各設定の均等な高さを維持する。 */
 .number-size-preview {
   display: flex;
@@ -1521,13 +1285,9 @@ html, body {
 }
 @media (max-width: 700px) {
   .number-size-setting { flex-direction: column; align-items: stretch; }
-  .number-size-control { width: 100%; }
-  .number-size-slider { flex: 1; width: 100%; max-width: none; }
 }
 @media (max-width: 400px) {
   .number-size-setting { flex-direction: column; align-items: stretch; }
-  .number-size-control { justify-content: space-between; }
-  .number-size-slider { width: 100%; max-width: none; flex: 1; }
   .count-history-section { padding: 12px; }
   .count-history-actions { gap: 5px; }
   .count-history-button { padding: 8px; font-size: 13px; }
@@ -1682,13 +1442,13 @@ html, body {
   margin-bottom: 60px;
 }
 .counter-area-heading { font-size: 15px; margin: 0 0 14px; color: var(--text, #222); }
-.counter-mode-tabs { display: flex; gap: 6px; width: 100%; margin: 16px 0 22px;
-  overflow-x: auto; scrollbar-width: thin; padding: 3px 0 7px; }
+.counter-mode-tabs {  gap: 6px; width: 100%; margin: 16px 0 22px;
+    padding: 3px 0 7px; }
 .counter-mode-tabs[hidden], .common-counter-area[hidden] { display: none !important; }
-.counter-mode-tab { flex: 0 0 auto; min-width: 75px; max-width: 180px;
+.counter-mode-tab {  min-width: 75px; 
   padding: 10px 13px; border: 1px solid var(--border, #ccc); border-radius: 9px;
-  background: var(--surface-soft, #f5f5f5); color: var(--text, #222);
-  font: inherit; font-size: 14px; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  background: var(--surface-soft, #f5f5f5); 
+      cursor: pointer; }
 .counter-mode-tab.active { border-color: var(--text,#333); font-weight: bold; background: var(--surface,#fff); }
 /* フォントはiPhoneの標準書体で、数字だけ太さ500にする */
 .counter .number { font-weight: 500; font-variant-numeric: tabular-nums; }
@@ -1702,7 +1462,7 @@ html, body {
   font: inherit; font-size: 15px; font-weight: bold; cursor: pointer; }
 .accordion-chevron { font-size: 23px; line-height: 1; font-weight: 400; }
 .settings-accordion-body { padding: 0 12px 13px; }
-.settings-accordion-body[hidden], .mode-settings-body[hidden] { display: none; }
+.settings-accordion-body[hidden] { display: none; }
 .nested-counter-settings { padding: 10px 5px; border: 0; background: transparent; }
 .mode-settings-group { display: flex; flex-direction: column; min-width: 0; padding: 15px;
   background: var(--surface,#fff); border: 1px solid var(--border,#ddd); border-radius: 12px; }
@@ -1713,16 +1473,8 @@ html, body {
 .mode-settings-item:last-child { border-bottom: none; }
 .mode-settings-row { display: flex; gap: 10px; min-height: 64px; align-items: center; }
 .mode-name-input { flex: 1 1 auto; min-width: 0; }
-.mode-expand-button { flex: 0 0 42px; width: 42px; height: 44px; border: 1px solid var(--border,#ddd);
-  border-radius: 9px; background: var(--surface-soft,#f5f5f5); color: var(--text,#222);
-  font: inherit; font-size: 22px; cursor: pointer; }
-.mode-settings-body { background: var(--surface-soft,#f7f7f7); border-radius: 9px;
-  margin: 0 0 11px; padding: 9px 10px; }
-.mode-reorder-select { display: block; width: 100%; padding: 15px 12px; border: 0;
-  border-radius: 7px; text-align: left; background: transparent; color: var(--text,#222);
-  font: inherit; cursor: pointer; }
-.mode-reorder-select.selected { outline: 2px solid var(--text,#222); background: var(--surface-soft,#f7f7f7); }
-.mode-settings-group > .reorder-tools { order: 2; }
+
+
 .mode-settings-group > .mode-settings-list { order: 1; }
 .mode-settings-group > .add-button { order: 3; }
 /* 文字サイズ：5段階選択。狭いスマホでも1列に収まる。 */
@@ -1801,24 +1553,23 @@ html, body {
   touch-action: pan-x;
 }
 
-/* 見出しや並び替えボタンはhidden指定を確実に優先する。 */
-.counter-area-heading[hidden], .mode-settings-heading .reorder-toggle[hidden] { display: none !important; }
+/* カウンターの見出しはhidden属性を優先する。 */
+.counter-area-heading[hidden] { display: none !important; }
 /* 展開用の記号を、文字のベースラインではなくボタン中央に配置。 */
-.accordion-chevron, .mode-row-chevron {
+.accordion-chevron {
   display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; line-height: 1;
   vertical-align: middle; flex-shrink: 0;
 }
 
 /* 文字グリフの上下の余白差を避け、展開アイコンを幾何学的に中央に描画。 */
-.accordion-chevron, .mode-row-chevron { font-size: 0 !important; }
-.accordion-chevron::after, .mode-row-chevron::after {
+.accordion-chevron { font-size: 0 !important; }
+.accordion-chevron::after {
   content: ""; display: block; width: 8px; height: 8px;
   border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
   transform: translateY(-2px) rotate(45deg);
 }
-.settings-accordion-toggle[aria-expanded="true"] .accordion-chevron::after,
-.mode-row-toggle[aria-expanded="true"] .mode-row-chevron::after {
+.settings-accordion-toggle[aria-expanded="true"] .accordion-chevron::after {
   transform: translateY(2px) rotate(225deg);
 }
 
@@ -1988,10 +1739,10 @@ html, body {
   max-width: none;
 }
 .landscape-mode .bottom-tabs {
-  padding: 4px 10px;
+  padding: 3px 10px;
 }
 .landscape-mode .bottom-tabs-inner { max-width: none; }
-.landscape-mode .tab-button { min-height: 42px; gap: 1px; padding: 2px; }
+.landscape-mode .tab-button { min-height: 40px; gap: 1px; padding: 2px; }
 .landscape-mode .tab-icon { font-size: 17px; }
 .landscape-mode .tab-label { font-size: 11px; }
 .landscape-mode .content-inner {
@@ -2034,9 +1785,9 @@ html, body {
 .landscape-mode .count-history-table { font-size: 11px; }
 .landscape-mode .count-history-table th,
 .landscape-mode .count-history-table td { padding: 6px 3px; }
-.landscape-mode .counter-list { row-gap: 20px; column-gap: 8px; }
+.landscape-mode .counter-list { row-gap: 20px; --counter-gap: 8px; }
 .landscape-mode .counter-list[data-columns="5"],
-.landscape-mode .counter-list[data-columns="6"] { column-gap: 3px; }
+.landscape-mode .counter-list[data-columns="6"] { --counter-gap: 3px; }
 .landscape-mode .total-games-row { margin-bottom: 6px; }
 .landscape-mode .count-mode-row { margin-bottom: 10px; }
 .landscape-mode .common-counter-area { margin-bottom: 12px; }
@@ -2056,3 +1807,153 @@ html, body {
 
 /* 横表示中の行スワイプは回転後の座標軸に合わせて解釈する */
 .landscape-mode .gesture-row { touch-action: pan-x; }
+
+/* =====================================================
+   絵文字は使わず、全タブとテーマ切替の線画アイコンを統一
+===================================================== */
+.ui-line-icon {
+  display: block;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  color: inherit;
+  pointer-events: none;
+}
+.tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tab-icon .ui-line-icon { width: 22px; height: 22px; }
+.theme-setting .theme-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.theme-setting .theme-option .ui-line-icon { width: 17px; height: 17px; }
+.landscape-mode .tab-icon .ui-line-icon { width: 18px; height: 18px; }
+
+/* =====================================================
+   画面の横スクロール防止
+   ・縦表示は縦スクロールのみ
+   ・手動横表示では、90度回転後の縦方向のみスクロール
+   ・モード切替タブは行折り返しにして、スクロールなしでも全件選べる
+   ・小役削除用の左スワイプはJSで判定するため維持
+===================================================== */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+}
+/* 回転して表示している間は、物理画面の左右方向がアプリの縦方向になる。 */
+html.landscape-mode,
+html.landscape-mode body {
+  touch-action: pan-x;
+}
+.container,
+.app-content,
+.content-inner,
+.tab-panel {
+  max-width: 100%;
+  min-width: 0;
+  overscroll-behavior-x: none;
+}
+/* スライド式の見た目を残し、モード数が増えたときは折り返す。 */
+.counter-mode-tabs {
+  flex-wrap: wrap;
+  overflow-x: hidden;
+  scroll-snap-type: none;
+  scrollbar-width: none;
+}
+.counter-mode-tab { scroll-snap-align: none; }
+/* 履歴の横スクロールは禁止。表は既存の固定列幅で収める。 */
+.count-history-table-wrap { overflow-x: hidden; }
+
+/* =====================================================
+   スマートフォンの表示設定：列数・形状・テーマはラベルと操作欄を1行に。
+   文字サイズはラベルと5択を別行にし、選択肢自体は1列のまま。
+   以前の max-width:400/480px の縦積み指定より後に記述して上書きする。
+===================================================== */
+@media (max-width: 700px) {
+  .display-settings-group > .column-setting,
+  .display-settings-group > .shape-setting,
+  .display-settings-group > .theme-setting {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .display-settings-group .column-setting-label,
+  .display-settings-group .shape-setting-label,
+  .display-settings-group .theme-setting-label {
+    flex: 0 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  .display-settings-group .column-setting .column-select {
+    flex: 0 0 88px;
+    width: 88px;
+    min-width: 0;
+    max-width: 88px;
+  }
+
+  .display-settings-group .shape-setting .theme-toggle,
+  .display-settings-group .theme-setting .theme-toggle {
+    flex: 0 1 155px;
+    width: 155px;
+    min-width: 108px;
+    max-width: 155px;
+  }
+
+  .display-settings-group .shape-setting .theme-option,
+  .display-settings-group .theme-setting .theme-option {
+    padding-left: 2px;
+    padding-right: 2px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .display-settings-group > .number-size-setting {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 9px;
+  }
+  .display-settings-group .font-size-options {
+    width: 100%;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* =====================================================
+   iOS 27 ホーム画面PWA: 上端のシステムブラー対策
+   ・11pxの固定要素を最上部に置いてWebKitの判定に対応
+   ・background-clip:text と空要素により画面には描画しない
+   ・既存ヘッダーの高さ・位置、タップ操作には影響させない
+   ・通常のブラウザーでは適用しない
+   ※ Apple公式APIではないためiPhone実機での効果確認が必要
+===================================================== */
+@media (display-mode: standalone) {
+  @supports (-webkit-touch-callout: none) {
+    .ios-pwa-top-blur-fix {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 11px;
+      z-index: 9999;
+      pointer-events: none;
+      background-color: var(--surface, #fff);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+  }
+}

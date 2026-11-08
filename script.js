@@ -4,6 +4,7 @@
 // ===================================
 
 const MAX_COUNTERS = 15;
+const MAX_MODES = 4;
 const MIN_COUNTERS = 1;
 // 小役ごとのカウント値は3桁（0〜999）まで。総ゲーム数には適用しない。
 const MAX_COUNT_VALUE = 999;
@@ -187,7 +188,10 @@ function loadCounters() {
         }).filter(Boolean);
 
         if (loaded.length > 0) {
-          return loaded.slice(0, MAX_COUNTERS);
+          // 上限15個は各グループ（共通・モード別）の「追加時」に適用する。
+          // 全グループの合計を15個で切り捨てると保存済みデータを失うため、
+          // 読み込み時には有効なカウンターをすべて復元する。
+          return loaded;
         }
       }
 
@@ -281,11 +285,9 @@ let activeColorPickerSection = null;
 // 保存処理
 // ===================================
 
+// カウンターの保存だけを担当する。モード保存・画面描画は呼び出し側で行う。
 function saveCounters() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(counters));
-  saveModes();
-  // 表示中の確率一覧や編集中の計算結果も同期する。
-  if (typeof refreshProbabilityDisplay === "function") refreshProbabilityDisplay();
 }
 
 
@@ -344,18 +346,71 @@ function formatCountTime(iso) {
     .join(":");
 }
 
+// 履歴データの表示順はUndo/Redoの状態から決定し、DOM生成と切り離す。
+function getHistoryDisplayEntries() {
+  // futureはUndoされた順にpushされるため、元の操作順に戻す。
+  return [
+    ...countHistory.past.map(entry => ({ entry, undone: false })),
+    ...countHistory.future.slice().reverse().map(entry => ({ entry, undone: true }))
+  ];
+}
+
+// 履歴の1行を作成する。時刻・操作・変更前後の表示形式は維持する。
+function createHistoryRow(entry, undone, latestApplied) {
+  const row = document.createElement("tr");
+  if (undone) {
+    row.classList.add("count-history-undone");
+    row.title = "Undoで取り消した操作（Redoでやり直し可能）";
+    row.setAttribute("aria-label", "取り消し済みの操作");
+  } else if (entry === latestApplied) {
+    // 「最新」の文字は付けず、最後に確定している操作だけを背景色で区別。
+    row.classList.add("count-history-latest");
+  }
+
+  const timeCell = document.createElement("td");
+  timeCell.className = "count-history-time";
+  const time = document.createElement("time");
+  time.dateTime = entry.at;
+  time.title = new Date(entry.at).toLocaleDateString("ja-JP");
+  time.textContent = formatCountTime(entry.at);
+  timeCell.appendChild(time);
+
+  const nameCell = document.createElement("td");
+  nameCell.className = "count-history-name";
+  nameCell.textContent = entry.counterName;
+
+  const operationCell = document.createElement("td");
+  operationCell.className = "count-history-operation";
+  operationCell.textContent = entry.action;
+
+  const numbersCell = document.createElement("td");
+  numbersCell.className = "count-history-values";
+  const valuesLayout = document.createElement("span");
+  valuesLayout.className = "count-history-values-layout";
+  const beforeValue = document.createElement("span");
+  beforeValue.className = "count-history-before";
+  beforeValue.textContent = entry.before;
+  const arrow = document.createElement("span");
+  arrow.className = "count-history-arrow";
+  arrow.textContent = "→";
+  arrow.setAttribute("aria-hidden", "true");
+  const afterValue = document.createElement("span");
+  afterValue.className = "count-history-after";
+  afterValue.textContent = entry.after;
+  valuesLayout.append(beforeValue, arrow, afterValue);
+  numbersCell.appendChild(valuesLayout);
+  numbersCell.setAttribute("aria-label", `${entry.before} から ${entry.after}`);
+
+  row.append(timeCell, nameCell, operationCell, numbersCell);
+  return row;
+}
+
 function renderCountHistory() {
   countUndoButton.disabled = countHistory.past.length === 0;
   countRedoButton.disabled = countHistory.future.length === 0;
   countHistoryList.replaceChildren();
 
-  // 過去（確定済み）とfuture（Undo済み）を操作日時の順に連結する。
-  // futureはUndoされた順にpushされるので、元の操作順に戻すにはreverseが必要。
-  const entries = [
-    ...countHistory.past.map(entry => ({ entry, undone: false })),
-    ...countHistory.future.slice().reverse().map(entry => ({ entry, undone: true }))
-  ];
-
+  const entries = getHistoryDisplayEntries();
   if (entries.length === 0) {
     const row = document.createElement("tr");
     const empty = document.createElement("td");
@@ -365,57 +420,12 @@ function renderCountHistory() {
     row.appendChild(empty);
     countHistoryList.appendChild(row);
   } else {
-    // 操作した時系列を保ち、取り消した履歴もグレーアウトしてその場所に残す。
+    // 操作した時系列を保ち、取り消した履歴もその場所に残す。
     const recent = entries.slice(-historyShown).reverse();
     const latestApplied = countHistory.past[countHistory.past.length - 1];
     const fragment = document.createDocumentFragment();
     recent.forEach(({ entry, undone }) => {
-      const row = document.createElement("tr");
-      if (undone) {
-        row.classList.add("count-history-undone");
-        row.title = "Undoで取り消した操作（Redoでやり直し可能）";
-        row.setAttribute("aria-label", "取り消し済みの操作");
-      } else if (entry === latestApplied) {
-        // 「最新」の文字は付けず、最後に確定している操作だけを背景色で区別。
-        row.classList.add("count-history-latest");
-      }
-
-      const timeCell = document.createElement("td");
-      timeCell.className = "count-history-time";
-      const time = document.createElement("time");
-      time.dateTime = entry.at;
-      time.title = new Date(entry.at).toLocaleDateString("ja-JP");
-      time.textContent = formatCountTime(entry.at);
-      timeCell.appendChild(time);
-
-      const nameCell = document.createElement("td");
-      nameCell.className = "count-history-name";
-      nameCell.textContent = entry.counterName;
-
-      const operationCell = document.createElement("td");
-      operationCell.className = "count-history-operation";
-      operationCell.textContent = entry.action;
-
-      const numbersCell = document.createElement("td");
-      numbersCell.className = "count-history-values";
-      const valuesLayout = document.createElement("span");
-      valuesLayout.className = "count-history-values-layout";
-      const beforeValue = document.createElement("span");
-      beforeValue.className = "count-history-before";
-      beforeValue.textContent = entry.before;
-      const arrow = document.createElement("span");
-      arrow.className = "count-history-arrow";
-      arrow.textContent = "→";
-      arrow.setAttribute("aria-hidden", "true");
-      const afterValue = document.createElement("span");
-      afterValue.className = "count-history-after";
-      afterValue.textContent = entry.after;
-      valuesLayout.append(beforeValue, arrow, afterValue);
-      numbersCell.appendChild(valuesLayout);
-      numbersCell.setAttribute("aria-label", `${entry.before} から ${entry.after}`);
-
-      row.append(timeCell, nameCell, operationCell, numbersCell);
-      fragment.appendChild(row);
+      fragment.appendChild(createHistoryRow(entry, undone, latestApplied));
     });
     countHistoryList.appendChild(fragment);
   }
@@ -447,8 +457,10 @@ function changeCount(counterData, newValue, action) {
   countHistory.past.push(entry);
   countHistory.future.length = 0;
   saveCounters();
+  refreshProbabilityDisplay();
   saveCountHistory();
-  renderCounters();
+  // 数値だけの変更では、ボタンと長押しイベントを作り直さない。
+  if (!refreshVisibleCounterNumber(counterData)) renderCounters();
   renderCountHistory();
   return true;
 }
@@ -478,12 +490,16 @@ function stepCountHistory(isRedo) {
   from.pop();
   to.push(entry);
   saveCounters();
+  refreshProbabilityDisplay();
   saveCountHistory();
+  let switchedMode = false;
   if (target.modeId !== COMMON_MODE_ID && modes.some(mode => mode.id === target.modeId)) {
+    switchedMode = selectedModeId !== target.modeId;
     selectedModeId = target.modeId;
     saveModes();
   }
-  renderCounters();
+  // 別モードへの切り替え時だけリスト全体を再描画する。
+  if (switchedMode || !refreshVisibleCounterNumber(target)) renderCounters();
   renderCountHistory();
   // 別モードの操作を戻した場合は、その小役が見える位置に移動。
   const location = (target.modeId === COMMON_MODE_ID ? commonCounterList : counterList)
@@ -635,6 +651,53 @@ decrementSwitch.addEventListener("change", function() {
 const LONG_PRESS_MS = 650;
 const LONG_PRESS_MOVE_LIMIT = 12;
 
+// カウンターの表示更新をDOM作成から分離する。
+// 既存ボタンを維持することで、連続タップ時のフォーカスや長押し状態を壊さない。
+function updateCounterNumber(counterData, button, titleText) {
+  const number = button.querySelector(".number");
+  if (!number) return;
+  number.textContent = counterData.count;
+  // 数字が長い場合は、指定サイズを上限にしてボタン内へ収める。
+  const width = button.getBoundingClientRect().width || 150;
+  const digits = String(counterData.count).length;
+  const safeSize = Math.max(8, Math.floor((width - 12) / Math.max(digits * 0.62, 1)));
+  number.style.fontSize = `${Math.min(countFontSize, safeSize)}px`;
+  const operation = decrementSwitch.checked ? "減算" : "加算";
+  button.setAttribute("aria-label",
+    `${titleText}、${counterData.count}回。タップで${operation}、長押しで数値編集`);
+}
+
+// 表示中の同じ小役だけ更新する。別モードにある小役は再描画対象外。
+function refreshVisibleCounterNumber(counterData) {
+  let updated = false;
+  for (const list of [commonCounterList, counterList]) {
+    for (const item of list.querySelectorAll(".counter-item")) {
+      if (item.dataset.counterId !== counterData.id) continue;
+      const button = item.querySelector(".counter");
+      const title = item.querySelector(".title");
+      if (button && title) {
+        updateCounterNumber(counterData, button, title.textContent);
+        updated = true;
+      }
+    }
+  }
+  return updated;
+}
+
+// 手動横表示でボタンの横幅が変わるため、既存の数字だけ再調整する。
+// ボタンそのものを作り直さず、長押し・タップのイベントを維持する。
+function resizeCounterNumbers() {
+  const counterById = new Map(counters.map(counter => [counter.id, counter]));
+  for (const list of [commonCounterList, counterList]) {
+    list.querySelectorAll(".counter-item").forEach(item => {
+      const data = counterById.get(item.dataset.counterId);
+      const button = item.querySelector(".counter");
+      const title = item.querySelector(".title");
+      if (data && button && title) updateCounterNumber(data, button, title.textContent);
+    });
+  }
+}
+
 function renderCounterGroup(targetList, groupCounters) {
   targetList.replaceChildren();
   groupCounters.forEach((counterData, index) => {
@@ -658,18 +721,6 @@ function renderCounterGroup(targetList, groupCounters) {
     const number = document.createElement("div");
     number.className = "number";
     counter.appendChild(number);
-
-    function updateNumber() {
-      number.textContent = counterData.count;
-      // 数字が長い場合は、指定サイズを上限にしてボタン内へ収める。
-      const width = counter.getBoundingClientRect().width || 150;
-      const digits = String(counterData.count).length;
-      const safeSize = Math.max(8, Math.floor((width - 12) / Math.max(digits * 0.62, 1)));
-      number.style.fontSize = `${Math.min(countFontSize, safeSize)}px`;
-      const operation = decrementSwitch.checked ? "減算" : "加算";
-      counter.setAttribute("aria-label",
-        `${title.textContent}、${counterData.count}回。タップで${operation}、長押しで数値編集`);
-    }
 
     // 長押しを通常タップと区別する。指を動かしてスクロールしたときは取り消す。
     let holdTimer = null;
@@ -747,7 +798,7 @@ function renderCounterGroup(targetList, groupCounters) {
 
     item.append(counter, title);
     targetList.appendChild(item);
-    updateNumber();
+    updateCounterNumber(counterData, counter, title.textContent);
   });
 }
 
@@ -908,6 +959,7 @@ function createCounterEditor(groupId) {
     const b = counters.indexOf(current[next]);
     [counters[a], counters[b]] = [counters[b], counters[a]];
     saveCounters();
+    refreshProbabilityDisplay();
     renderCounters();
     renderSettings();
   }
@@ -916,6 +968,7 @@ function createCounterEditor(groupId) {
     counters = counters.filter(counter => counter.id !== id);
     dropDeletedCounterHistory(id);
     saveCounters();
+    refreshProbabilityDisplay();
     renderCounters();
     renderSettings();
   }
@@ -939,6 +992,7 @@ function createCounterEditor(groupId) {
     input.addEventListener("input", function() {
       counterData.name = input.value;
       saveCounters();
+      refreshProbabilityDisplay();
     });
 
 
@@ -1056,6 +1110,7 @@ function createCounterEditor(groupId) {
       nativeInput.value = normalized;
 
       saveCounters();
+      refreshProbabilityDisplay();
 
       renderCounters();
 
@@ -1209,6 +1264,7 @@ function createCounterEditor(groupId) {
     if (groupCounters(groupId).length >= MAX_COUNTERS) return;
     counters.push(createCounter(getNewCounterName(groupId), 0, DEFAULT_COUNTER_COLOR, newCounterId(), groupId));
     saveCounters();
+    refreshProbabilityDisplay();
     renderCounters();
     renderSettings();
   });
@@ -1242,6 +1298,10 @@ function renderSettings() {
   commonSettingsContent.replaceChildren();
   if (commonSettingsOpen) commonSettingsContent.appendChild(createCounterEditor(COMMON_MODE_ID));
   renderModeSettings();
+  // 上限に達したら追加操作を無効化。既存データは勝手に削除しない。
+  addModeButton.disabled = modes.length >= MAX_MODES;
+  addModeButton.textContent = addModeButton.disabled
+    ? `モードは最大${MAX_MODES}個まで` : "＋ モードを追加";
 }
 
 // 通常表示で上下移動できるボタン。先頭・末尾も同じスペースを確保する。
@@ -1382,6 +1442,7 @@ function deleteMode(modeId) {
   if (editingModeId === modeId) editingModeId = null;
   if (selectedModeId === modeId) selectedModeId = modes[0]?.id || null;
   saveCounters();
+  saveModes();
   renderSettings();
   renderCounters();
   refreshProbabilityDisplay();
@@ -1471,6 +1532,7 @@ commonSettingsToggle.addEventListener("click", function() {
   renderSettings();
 });
 addModeButton.addEventListener("click", function() {
+  if (modes.length >= MAX_MODES) return;
   let number = 1;
   while (modes.some(mode => mode.name === `モード${number}`)) number++;
   const mode = { id: newModeId(), name: `モード${number}` };
@@ -1502,6 +1564,7 @@ resetAllButton.addEventListener("click", function() {
   countHistory = { past: [], future: [] };
   historyShown = HISTORY_PAGE_SIZE;
   saveCounters();
+  refreshProbabilityDisplay();
   saveCountHistory();
   renderCounters();
   renderCountHistory();
@@ -2009,6 +2072,8 @@ probabilitySaveButton.addEventListener("click", function() {
 // ===================================
 
 saveCounters();
+saveModes();
+refreshProbabilityDisplay();
 
 renderCounters();
 renderCountHistory();
