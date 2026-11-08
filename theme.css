@@ -1,0 +1,184 @@
+/* =====================================
+   ライトモード
+===================================== */
+
+:root {
+  color-scheme: light;
+
+  --page-bg: #F2F2F2;
+  --surface: #FFFFFF;
+  --surface-soft: #F8F8F8;
+
+  --text: #222222;
+  --muted: #666666;
+
+  --border: #DDDDDD;
+  --input-bg: #FFFFFF;
+
+  --selected-outline: #222222;
+}
+
+/* =====================================
+   ダークモード
+===================================== */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --page-bg: #151B25;
+  --surface: #242E3C;
+  --surface-soft: #1C2633;
+
+  --text: #F2F4F8;
+  --muted: #B9C4D2;
+
+  --border: #3B4655;
+  --input-bg: #1C2633;
+
+  --selected-outline: #FFFFFF;
+}
+
+/* =====================================
+   ページ全体
+===================================== */
+
+body {
+  background: var(--page-bg);
+  color: var(--text);
+}
+
+/* 子役名 */
+.title {
+  color: var(--text);
+}
+
+/* 設定画面の説明 */
+.description {
+  color: var(--muted);
+}
+
+/* 設定カード */
+.setting-item {
+  background: var(--surface);
+}
+
+/* 設定ラベル */
+.setting-label {
+  color: var(--muted);
+}
+
+/* 入力欄 */
+.setting-input {
+  background: var(--input-bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* 背景色変更ボタン */
+.color-open-button {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* カラーピッカー */
+.color-picker-panel {
+  background: var(--surface-soft);
+  border-color: var(--border);
+}
+
+/* HEX入力欄 */
+.color-hex {
+  background: var(--input-bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* 選択中の色 */
+.matrix-swatch.selected {
+  outline-color: var(--selected-outline);
+}
+
+/* =====================================
+   テーマ切り替え
+===================================== */
+
+/* テーマ設定エリア */
+.theme-setting {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  
+
+  padding: 15px;
+  margin-top: 20px; /* 子役設定との間に余白を追加 */
+  margin-bottom: 20px;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* テーマ設定ラベル */
+.theme-setting-label {
+  font-size: 15px;
+  font-weight: bold;
+  color: var(--text);
+}
+
+/* 切り替えボタン全体 */
+.theme-toggle {
+  display: flex;
+  gap: 5px;
+
+  padding: 4px;
+  background: var(--surface-soft);
+  border-radius: 9px;
+}
+
+/* 各テーマボタン */
+.theme-option {
+  padding: 10px 13px;
+
+  border: none;
+  border-radius: 7px;
+
+  background: transparent;
+  color: var(--muted);
+
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* 選択中のテーマ */
+.theme-option.active {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: bold;
+  box-shadow: 0 1px 4px #0002;
+}
+
+/* 押したとき */
+.theme-option:active {
+  transform: scale(0.97);
+}
+
+/* =====================================
+   スマホ対応
+===================================== */
+
+@media (max-width: 400px) {
+  .theme-setting {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .theme-toggle {
+    width: 100%;
+  }
+
+  .theme-option {
+    flex: 1;
+  }
+}

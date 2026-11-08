@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>小役カウンター</title>
+
+  <!-- ホーム画面のアプリアイコン（GitHub Pagesのサブパスでも動く相対パス） -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icons/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="64x64" href="./icons/favicon-64.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#172450">
+  <meta name="apple-mobile-web-app-title" content="小役カウンター">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="theme.css">
+
+  <script src="theme.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+
+<body>
+  <div class="container">
+
+    <!-- ヘッダー：画面上部に固定（中央部分だけスクロール） -->
+    <header class="app-header">
+      <div class="app-header-inner">
+        <button type="button" id="rotate-layout" class="rotate-layout-button" aria-pressed="false" aria-label="横表示に切り替え" title="横表示に切り替え">
+          <!-- スマートフォン＋回転矢印で画面の向き切り替えを明示 -->
+          <svg class="rotate-layout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <rect x="4" y="4" width="10" height="17" rx="2"></rect>
+            <path d="M8 18.5h2"></path>
+            <path d="M17 5.5a7 7 0 0 1 4 6.5"></path>
+            <path d="m18 10 3 2 2-3"></path>
+          </svg>
+        </button>
+        <h1 id="header-title">カウンター</h1>
+        <div class="header-actions">
+          <!-- カウンタータブ専用：カウントだけを全リセット -->
+          <button type="button" class="reset-all-button" id="reset-all">
+            リセット
+          </button>
+          <!-- メモタブ専用：入力したメモだけをリセット -->
+          <button type="button" class="reset-all-button" id="reset-memo" hidden>
+            リセット
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- スクロールするのは画面中央のコンテンツだけ -->
+    <main class="app-content" id="app-content">
+      <div class="content-inner">
+
+        <!-- カウンタータブ -->
+        <section id="main-screen" class="tab-panel" role="tabpanel" aria-labelledby="tab-counter">
+          <div class="counter-landscape-layout">
+          <div class="counter-work-area">
+          <!-- 総ゲーム数：確率計算で参照する。小さな入力欄にする -->
+          <div class="total-games-row">
+            <label for="total-games">総ゲーム数</label>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="9"
+                   id="total-games" class="total-games-input" aria-label="総ゲーム数" placeholder="0" autocomplete="off">
+            <span class="total-games-unit">G</span>
+          </div>
+          <!-- ヘッダーの下・カウンター画面右上の加算／減算切り替え -->
+          <div class="count-mode-row">
+            <label class="count-mode-control">
+              <span>減算</span>
+              <input type="checkbox" class="count-mode-input" id="decrement-switch" role="switch" aria-label="減算モード">
+              <span class="count-mode-track" aria-hidden="true"><span class="count-mode-thumb"></span></span>
+            </label>
+          </div>
+          <div class="common-counter-area" id="common-counter-area" hidden>
+            <h2 class="counter-area-heading">共通カウンター</h2>
+            <div class="counter-list" id="common-counter-list"></div>
+          </div>
+          <div class="counter-mode-tabs" id="counter-mode-tabs" role="group" aria-label="モード切り替え" hidden></div>
+          <div class="counter-list" id="counter-list"></div>
+          </div><!-- counter-work-area -->
+          <!-- 数値変更の履歴。上が最新（Undo/Redoは全小役共通） -->
+          <section class="count-history-section" aria-labelledby="count-history-heading">
+            <div class="count-history-heading">
+              <h2 id="count-history-heading">履歴</h2>
+              <div class="count-history-actions">
+                <button type="button" id="count-undo" class="count-history-button"
+                        aria-label="元に戻す" disabled>↶ 戻る</button>
+                <button type="button" id="count-redo" class="count-history-button"
+                        aria-label="やり直す" disabled>↷ やり直し</button>
+              </div>
+            </div>
+            <div class="count-history-table-wrap">
+              <table class="count-history-table" aria-label="カウント履歴">
+                <thead>
+                  <tr>
+                    <th scope="col">日時</th>
+                    <th scope="col">小役名</th>
+                    <th scope="col">操作</th>
+                    <th scope="col" class="count-history-values-heading">
+                      <span class="count-history-values-layout">
+                        <span class="count-history-before">変更前</span>
+                        <span class="count-history-arrow">→</span>
+                        <span class="count-history-after">変更後</span>
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="count-history-list" aria-live="polite"></tbody>
+              </table>
+            </div>
+            <button type="button" class="count-history-more" id="count-history-more" hidden>さらに表示</button>
+          </section>
+          </div><!-- counter-landscape-layout -->
+        </section>
+
+        <!-- メモタブ：装飾のないテキスト入力、自動保存 -->
+        <section id="memo-screen" class="tab-panel" role="tabpanel" aria-labelledby="tab-memo" hidden>
+          <textarea id="memo-input" class="memo-input" aria-label="メモ入力欄"
+                    placeholder="ここにメモを入力"></textarea>
+        </section>
+
+        <!-- 確率タブ：通常は保存した項目の一覧、追加・編集時だけ式を作成 -->
+        <section id="probability-screen" class="tab-panel" role="tabpanel" aria-labelledby="tab-probability" hidden>
+          <div id="probability-list-view">
+            <div id="probability-items" class="probability-items"></div>
+            <button type="button" id="probability-add" class="button probability-add">＋ 確率項目を追加</button>
+          </div>
+
+          <div id="probability-editor" class="probability-editor" hidden>
+            <div class="probability-editor-top">
+              <button type="button" id="probability-back" class="probability-secondary-button">← 戻る</button>
+              <h2 id="probability-editor-title">確率項目を作成</h2>
+            </div>
+            <label class="probability-field-label" for="probability-name">項目名</label>
+            <input type="text" id="probability-name" class="probability-name-input"
+                   placeholder="例：ぶどう確率" maxlength="40" autocomplete="off">
+
+            <span class="probability-field-label">計算式</span>
+            <div class="probability-formula" id="probability-formula" aria-live="polite"></div>
+            <div class="probability-keypad" aria-label="計算式の入力ボタン">
+              <button type="button" data-formula-op="+" aria-label="加算"><svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg></button>
+              <button type="button" data-formula-op="-" aria-label="減算"><svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true" focusable="false"><path d="M5 12h14"/></svg></button>
+              <button type="button" data-formula-op="*" aria-label="乗算"><svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true" focusable="false"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
+              <button type="button" data-formula-op="/" aria-label="除算"><svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true" focusable="false"><path d="M5 12h14"/><circle cx="12" cy="5" r="1.35" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.35" fill="currentColor" stroke="none"/></svg></button>
+              <button type="button" data-formula-op="(">（</button>
+              <button type="button" data-formula-op=")">）</button>
+              <button type="button" id="probability-games" class="probability-value-button">総ゲーム数</button>
+              <button type="button" id="probability-counter" class="probability-value-button" aria-expanded="false">小役</button>
+            </div>
+            <div id="probability-counter-menu" class="probability-counter-menu" hidden></div>
+            <div class="probability-edit-tools">
+              <button type="button" id="probability-undo" class="probability-secondary-button">1つ戻す</button>
+              <button type="button" id="probability-clear" class="probability-secondary-button">式をクリア</button>
+            </div>
+            <div class="probability-preview" aria-live="polite">
+              <span class="probability-preview-label">計算結果</span>
+              <strong id="probability-preview-value">—</strong>
+              <small id="probability-preview-note"></small>
+            </div>
+            <button type="button" id="probability-save" class="button probability-save" disabled>保存</button>
+          </div>
+        </section>
+
+        <!-- 設定タブ：既存の設定をそのまま使用 -->
+        <section id="settings-screen" class="tab-panel" role="tabpanel" aria-labelledby="tab-settings" hidden>
+          <div id="settings-overview">
+
+          <!-- 共通は独立した枠で展開。モードは別の1つの枠にまとめる。 -->
+          <section class="settings-accordion counter-settings-group" aria-label="共通カウンター">
+            <button type="button" id="common-settings-toggle" class="settings-accordion-toggle"
+                    aria-expanded="false" aria-controls="common-settings-content">
+              <span>共通カウンター</span><span class="accordion-chevron" aria-hidden="true">⌄</span>
+            </button>
+            <div id="common-settings-content" class="settings-accordion-body" hidden></div>
+          </section>
+
+          <section class="mode-settings-group" aria-labelledby="mode-settings-heading">
+            <div class="mode-settings-heading">
+              <h2 id="mode-settings-heading">モード</h2>
+
+            </div>
+            <div id="mode-settings-list" class="mode-settings-list"></div>
+            <button type="button" class="button add-button" id="add-mode">＋ モードを追加</button>
+          </section>
+
+          <!-- 表示設定：4つの設定を1つの枠にまとめる -->
+          <div class="display-settings-group" role="group" aria-label="表示設定">
+            <!-- カウンターの横並び数：ドロップダウンで選択 -->
+            <div class="column-setting">
+              <label class="column-setting-label" for="counter-columns">カウンターの横並び数</label>
+              <select class="column-select" id="counter-columns">
+                <option value="1">1列</option>
+                <option value="2">2列</option>
+                <option value="3">3列</option>
+                <option value="4">4列</option>
+                <option value="5">5列</option>
+                <option value="6">6列</option>
+              </select>
+            </div>
+
+            <!-- カウントボタンの形：画面テーマと同じ二択形式 -->
+            <div class="shape-setting">
+              <span class="shape-setting-label">カウントボタンの形</span>
+              <div class="theme-toggle shape-options" role="group" aria-label="カウントボタンの形">
+                <button type="button" class="theme-option shape-option" data-counter-shape="square">四角</button>
+                <button type="button" class="theme-option shape-option" data-counter-shape="circle">丸</button>
+              </div>
+            </div>
+
+            <!-- カウント数字の文字サイズ：端末に保存する -->
+            <div class="number-size-setting">
+              <span class="number-size-setting-label" id="font-size-label">カウント値の文字サイズ</span>
+              <div class="font-size-options" role="group" aria-labelledby="font-size-label">
+                <button type="button" class="font-size-option" data-font-size="8">特小</button>
+                <button type="button" class="font-size-option" data-font-size="20">小</button>
+                <button type="button" class="font-size-option" data-font-size="32">標準</button>
+                <button type="button" class="font-size-option" data-font-size="44">大</button>
+                <button type="button" class="font-size-option" data-font-size="56">特大</button>
+              </div>
+            </div>
+
+            <!-- サイズ変更中も選択した実際のpxサイズを確認できる見本 -->
+            <div class="number-size-preview" aria-label="文字サイズの実寸見本">
+              <span class="number-size-preview-label" aria-hidden="true">実寸見本</span>
+              <span class="number-size-preview-number" id="number-font-size-preview">888</span>
+            </div>
+
+            <!-- 画面テーマ設定 -->
+            <div class="theme-setting">
+              <span class="theme-setting-label">画面テーマ</span>
+              <div class="theme-toggle">
+                <button type="button" class="theme-option" id="light-theme">☀ ライト</button>
+                <button type="button" class="theme-option" id="dark-theme">☾ ダーク</button>
+              </div>
+            </div>
+
+          </div>
+          </div><!-- 設定一覧 -->
+
+          <!-- モードを選択するとこの画面へ移動し、そのモードの小役を編集 -->
+          <section id="settings-mode-detail" class="settings-mode-detail" aria-labelledby="settings-mode-detail-title" hidden>
+            <div class="settings-mode-detail-header">
+              <button type="button" id="settings-mode-back" class="settings-mode-back">← 戻る</button>
+              <h2 id="settings-mode-detail-title"></h2>
+            </div>
+            <div id="settings-mode-detail-content"></div>
+          </section>
+
+        </section>
+
+      </div>
+    </main>
+
+    <!-- 画面下部に固定する4つのタブ -->
+    <nav class="bottom-tabs" aria-label="画面切り替え">
+      <div class="bottom-tabs-inner" role="tablist" aria-label="画面の切り替え">
+        <button type="button" class="tab-button active" id="tab-counter" role="tab"
+                aria-controls="main-screen" aria-selected="true" tabindex="0" data-tab="counter">
+          <span class="tab-icon" aria-hidden="true">▦</span>
+          <span class="tab-label">カウンター</span>
+        </button>
+        <button type="button" class="tab-button" id="tab-memo" role="tab"
+                aria-controls="memo-screen" aria-selected="false" tabindex="-1" data-tab="memo">
+          <span class="tab-icon" aria-hidden="true">✎</span>
+          <span class="tab-label">メモ</span>
+        </button>
+        <button type="button" class="tab-button" id="tab-probability" role="tab"
+                aria-controls="probability-screen" aria-selected="false" tabindex="-1" data-tab="probability">
+          <span class="tab-icon" aria-hidden="true">%</span>
+          <span class="tab-label">設定判別</span>
+        </button>
+        <button type="button" class="tab-button" id="tab-settings" role="tab"
+                aria-controls="settings-screen" aria-selected="false" tabindex="-1" data-tab="settings">
+          <span class="tab-icon" aria-hidden="true">⚙</span>
+          <span class="tab-label">設定</span>
+        </button>
+      </div>
+    </nav>
+
+  </div>
+
+  <!-- 長押しで開くカウント直接編集ダイアログ -->
+  <dialog id="count-edit-dialog" class="count-edit-dialog" aria-labelledby="count-edit-title">
+    <form id="count-edit-form" novalidate>
+      <h2 id="count-edit-title">小役</h2>
+      <input id="count-edit-input" type="text" inputmode="numeric" pattern="[0-9]*"
+             autocomplete="off" maxlength="3" aria-label="カウント値" class="count-edit-input">
+      <p id="count-edit-error" class="count-edit-error" role="alert" hidden></p>
+      <div class="count-edit-actions">
+        <button type="button" class="count-edit-cancel" id="count-edit-cancel">キャンセル</button>
+        <button type="button" class="count-edit-reset" id="count-edit-reset">リセット</button>
+        <button type="submit" class="count-edit-save" id="count-edit-save">保存</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "小役カウンター",
+  "short_name": "小役カウンター",
+  "description": "小役のカウントとメモを管理するアプリ",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#172450",
+  "theme_color": "#172450",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
