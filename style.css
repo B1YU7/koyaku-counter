@@ -1345,10 +1345,10 @@ button * {
    （設定の選択・保存処理は従来のまま）
 ===================================== */
 .display-settings-group {
-  /* 4つの設定行は内容の違いに関係なく同じ高さにする */
+  /* 各設定行は内容の違いに関係なく同じ高さにする */
   display: grid;
-  /* 4つの設定行は等しい高さ。プレビュー（4行目）だけ固定の高さ。 */
-  grid-template-rows: repeat(3, minmax(min-content, 1fr)) 104px minmax(min-content, 1fr);
+  /* 縦横の列数を別々の行にし、プレビューだけ高さを固定する。 */
+  grid-template-rows: repeat(4, minmax(min-content, 1fr)) 104px minmax(min-content, 1fr);
   margin-top: 20px;
   margin-bottom: 20px;
   padding: 0 15px;
@@ -1451,6 +1451,12 @@ button * {
   pointer-events: none;
 }
 
+
+/* 四則演算アイコンの太い線に合わせ、括弧ボタンも太字にする。 */
+.probability-keypad button[data-formula-op="("],
+.probability-keypad button[data-formula-op=")"] {
+  font-weight: 700;
+}
 
 /* =====================================
    確率：編集中の式を枠の高さ方向の中央に配置

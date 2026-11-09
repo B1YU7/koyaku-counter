@@ -222,10 +222,19 @@
 
           <!-- 表示設定：4つの設定を1つの枠にまとめる -->
           <div class="display-settings-group" role="group" aria-label="表示設定">
-            <!-- カウンターの横並び数：ドロップダウンで選択 -->
+            <!-- 縦表示・横表示でカウンターの横並び数を独立して設定する -->
             <div class="column-setting">
-              <label class="column-setting-label" for="counter-columns">カウンターの横並び数</label>
-              <select class="column-select" id="counter-columns">
+              <label class="column-setting-label" for="counter-columns-portrait">縦表示の横並び数</label>
+              <select class="column-select" id="counter-columns-portrait">
+                <option value="1">1列</option>
+                <option value="2">2列</option>
+                <option value="3">3列</option>
+                <option value="4">4列</option>
+              </select>
+            </div>
+            <div class="column-setting">
+              <label class="column-setting-label" for="counter-columns-landscape">横表示の横並び数</label>
+              <select class="column-select" id="counter-columns-landscape">
                 <option value="1">1列</option>
                 <option value="2">2列</option>
                 <option value="3">3列</option>

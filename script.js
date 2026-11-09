@@ -243,7 +243,8 @@ const settingsModeDetailTitle = document.getElementById("settings-mode-detail-ti
 const settingsModeDetailContent = document.getElementById("settings-mode-detail-content");
 const settingsModeBack = document.getElementById("settings-mode-back");
 const addModeButton = document.getElementById("add-mode");
-const columnSelect = document.getElementById("counter-columns");
+const portraitColumnSelect = document.getElementById("counter-columns-portrait");
+const landscapeColumnSelect = document.getElementById("counter-columns-landscape");
 const shapeButtons = document.querySelectorAll("[data-counter-shape]");
 
 const mainScreen = document.getElementById("main-screen");
@@ -594,38 +595,63 @@ fontSizeButtons.forEach(button => button.addEventListener("click", function() {
 updateFontSizeSelection();
 
 // ===================================
-// カウンターの横並び数（1～6列）
+// カウンターの横並び数（縦1～4列／横1～6列）
 // ===================================
 
-const COLUMN_STORAGE_KEY = "counterColumns";
+const LEGACY_COLUMN_STORAGE_KEY = "counterColumns";
+const PORTRAIT_COLUMN_STORAGE_KEY = "counterColumnsPortrait";
+const LANDSCAPE_COLUMN_STORAGE_KEY = "counterColumnsLandscape";
 const DEFAULT_COLUMNS = 1;
 
-// 保存値が不正なら1列に戻す
-function loadColumnCount() {
-  const saved = localStorage.getItem(COLUMN_STORAGE_KEY);
+// 以前の共通設定を引き継ぐ。縦表示は最大4列へ収め、横表示は最大6列を維持する。
+function readColumns(key, maximum) {
+  const saved = localStorage.getItem(key) ?? localStorage.getItem(LEGACY_COLUMN_STORAGE_KEY);
   const value = Number(saved);
-
-  return saved !== null && Number.isInteger(value) && value >= 1 && value <= 6
-    ? value
+  return saved !== null && Number.isInteger(value) && value >= 1
+    ? Math.min(value, maximum)
     : DEFAULT_COLUMNS;
 }
 
-// 列数を画面とドロップダウンの双方へ反映する。
-function applyColumnCount(count) {
-  counterList.dataset.columns = String(count);
-  commonCounterList.dataset.columns = String(count);
-  columnSelect.value = String(count);
+let portraitColumnCount = readColumns(PORTRAIT_COLUMN_STORAGE_KEY, 4);
+let landscapeColumnCount = readColumns(LANDSCAPE_COLUMN_STORAGE_KEY, 6);
+
+function getActiveColumnCount() {
+  return document.documentElement.classList.contains("landscape-mode")
+    ? landscapeColumnCount : portraitColumnCount;
 }
 
-// 列数を変更したら保存（画面を開き直しても維持）。
-columnSelect.addEventListener("change", function() {
-  const count = Number(columnSelect.value);
-  if (!Number.isInteger(count) || count < 1 || count > 6) return;
-  applyColumnCount(count);
-  localStorage.setItem(COLUMN_STORAGE_KEY, String(count));
+// 表示中の向きだけの列数を適用し、入力欄はそれぞれ独立して表示する。
+function applyColumnCount() {
+  const count = getActiveColumnCount();
+  counterList.dataset.columns = String(count);
+  commonCounterList.dataset.columns = String(count);
+  portraitColumnSelect.value = String(portraitColumnCount);
+  landscapeColumnSelect.value = String(landscapeColumnCount);
+  // 開いている小役選択欄も表示方向に合わせる（計算式の内容は変更しない）。
+  document.querySelectorAll(".probability-counter-grid").forEach(grid => {
+    grid.dataset.columns = String(count);
+  });
+  // カウンターDOMは維持したまま、列数変更後の幅に合わせて数字のみ調整する。
+  requestAnimationFrame(resizeCounterNumbers);
+}
+
+portraitColumnSelect.addEventListener("change", function() {
+  const count = Number(portraitColumnSelect.value);
+  if (!Number.isInteger(count) || count < 1 || count > 4) return;
+  portraitColumnCount = count;
+  localStorage.setItem(PORTRAIT_COLUMN_STORAGE_KEY, String(count));
+  applyColumnCount();
 });
 
-applyColumnCount(loadColumnCount());
+landscapeColumnSelect.addEventListener("change", function() {
+  const count = Number(landscapeColumnSelect.value);
+  if (!Number.isInteger(count) || count < 1 || count > 6) return;
+  landscapeColumnCount = count;
+  localStorage.setItem(LANDSCAPE_COLUMN_STORAGE_KEY, String(count));
+  applyColumnCount();
+});
+
+applyColumnCount();
 
 
 // ===================================
@@ -2046,7 +2072,7 @@ probabilityCounterButton.addEventListener("click", function() {
     heading.textContent = group.name.trim() || "名前なし";
     const grid = document.createElement("div");
     grid.className = "probability-counter-grid";
-    grid.dataset.columns = String(loadColumnCount());
+    grid.dataset.columns = String(getActiveColumnCount());
     members.forEach((counter, index) => {
       const button = document.createElement("button");
       button.type = "button";
@@ -2125,7 +2151,7 @@ function applyManualLayout() {
   rotateLayoutButton.setAttribute("aria-pressed", String(isLandscapeLayout));
   rotateLayoutButton.setAttribute("aria-label", isLandscapeLayout ? "縦表示に切り替え" : "横表示に切り替え");
   rotateLayoutButton.title = isLandscapeLayout ? "縦表示に切り替え" : "横表示に切り替え";
-  if (typeof resizeCounterNumbers === "function") requestAnimationFrame(resizeCounterNumbers);
+  applyColumnCount();
 }
 rotateLayoutButton.addEventListener("click", () => {
   isLandscapeLayout = !isLandscapeLayout;
