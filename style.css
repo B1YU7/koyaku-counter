@@ -92,6 +92,11 @@ h1 {
   --counter-size: 121px;
 }
 
+/* カウンター画面の左右だけ少し余白を増やす（設定画面などには適用しない） */
+#main-screen .counter-list {
+  padding-inline: 8px;
+}
+
 /* 1～6列を切り替える */
 .counter-list[data-columns="1"] { --counter-columns: 1; }
 .counter-list[data-columns="2"] { --counter-columns: 2; }
@@ -1062,6 +1067,13 @@ button * {
 /* =====================================
    カウント編集・履歴・Undo / Redo
 ===================================== */
+/* 履歴の見出し・一覧・最新の1件を含めて文字選択を無効にする。
+   スクロールやUndo/Redoの操作には影響させない。 */
+.count-history-section,
+.count-history-section * {
+  -webkit-user-select: none;
+  user-select: none;
+}
 .count-history-section {
   margin-top: 72px; /* カウンター一覧と履歴の間隔を広げる */
   padding: 16px;
@@ -1111,10 +1123,17 @@ button * {
   /* 表本体と同じスクロールバー用スペースを確保し、列位置を揃える。 */
   scrollbar-gutter: stable;
 }
-/* スクロールするのは履歴データだけ。見出しは領域の外に固定する。 */
+/* 最新の1件専用表示は横表示のみで使い、縦表示には複製しない。 */
+.count-history-current {
+  display: none;
+  max-width: 100%;
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+/* 縦表示は全履歴を元の順でスクロール。列見出しだけ別枠で固定する。 */
 .count-history-table-wrap {
   max-width: 100%;
-  max-height: 231px; /* 従来の268pxから見出しの高さだけ除く */
+  max-height: 231px;
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-gutter: stable;
@@ -1756,38 +1775,34 @@ button * {
   padding: 10px 0 15px;
 }
 .landscape-mode .counter-landscape-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 42%) minmax(0, 1fr);
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   gap: 14px;
   min-width: 0;
 }
 .landscape-mode .counter-work-area {
-  grid-column: 2;
-  grid-row: 1;
   min-width: 0;
-  max-height: calc(100dvw - 122px);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  /* 左右2分割を解除し、カウンターの下に履歴を置く。 */
+  max-height: none;
+  overflow: visible;
   padding: 0 5px 12px;
 }
 .landscape-mode .count-history-section {
-  grid-column: 1;
-  grid-row: 1;
   min-width: 0;
+  width: 100%;
   margin: 0;
   padding: 10px;
 }
+.landscape-mode .count-history-current { display: block; }
 .landscape-mode .count-history-heading { gap: 4px; margin-bottom: 7px; }
 .landscape-mode .count-history-heading h2 { font-size: 15px; }
 .landscape-mode .count-history-actions { width: 100%; gap: 6px; }
 .landscape-mode .count-history-button { min-height: 32px; padding: 4px; font-size: 12px; }
-.landscape-mode .count-history-table-wrap {
-  /* 横表示でも従来の履歴エリア全体の高さを維持する。 */
-  max-height: max(36px, calc(100dvw - 239px));
-}
+/* 横表示は最新の確定履歴だけを表示し、過去・Undo済み履歴は隠す。 */
+.landscape-mode .count-history-table-wrap { display: none; }
+.landscape-mode #count-history-more { display: none !important; }
 .landscape-mode .count-history-table { font-size: 11px; }
 .landscape-mode .count-history-table th,
 .landscape-mode .count-history-table td { padding: 6px 3px; }
@@ -1961,4 +1976,63 @@ html.landscape-mode body {
       background-clip: text;
     }
   }
+}
+
+/* =====================================
+   カウンター画面の表示専用ラベルを文字選択・ドラッグさせない。
+   総ゲーム数の入力欄や設定の小役名入力欄は対象外。
+===================================== */
+.counter-item .title,
+.total-games-row label,
+.total-games-unit,
+.counter-area-heading,
+.probability-counter-heading,
+.count-mode-control,
+.count-mode-control > span {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+/* =====================================
+   表示設定の見出し・選択肢・数値見本は文字選択させない。
+   列数プルダウンや設定ボタンの操作は従来どおり有効。
+===================================== */
+.display-settings-group,
+.display-settings-group :where(label, span, button, select, option) {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+
+/* =====================================
+   設定・設定判別・カウンター長押しダイアログの表示専用文字を選択させない。
+   モード名、小役名、計算式、結果、見出し、通番などの表示部分が対象。
+   入力可能なテキスト欄は選択・編集を維持する。
+===================================== */
+#settings-screen,
+#probability-screen,
+#count-edit-dialog {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+#settings-screen :is(input, textarea, [contenteditable="true"]),
+#probability-screen :is(input, textarea, [contenteditable="true"]),
+#count-edit-dialog :is(input, textarea, [contenteditable="true"]) {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* メモ・項目名のプレースホルダーは表示専用。入力済みの文章は選択可能。 */
+#memo-input::placeholder,
+#probability-name::placeholder {
+  -webkit-user-select: none;
+  user-select: none;
 }

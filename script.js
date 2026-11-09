@@ -261,6 +261,9 @@ const tabButtons = document.querySelectorAll(".tab-button");
 // カウント履歴・Undo/Redoの共通操作
 const countUndoButton = document.getElementById("count-undo");
 const countRedoButton = document.getElementById("count-redo");
+const countHistoryCurrent = document.getElementById("count-history-current");
+const countHistoryScrollSpace = document.getElementById("count-history-scroll-space");
+const countHistoryScrollArea = document.querySelector(".count-history-table-wrap");
 const countHistoryList = document.getElementById("count-history-list");
 const countHistoryMore = document.getElementById("count-history-more");
 
@@ -408,28 +411,77 @@ function createHistoryRow(entry, undone, latestApplied) {
 function renderCountHistory() {
   countUndoButton.disabled = countHistory.past.length === 0;
   countRedoButton.disabled = countHistory.future.length === 0;
+  countHistoryCurrent.replaceChildren();
   countHistoryList.replaceChildren();
+  countHistoryScrollSpace.style.height = "0px";
 
   const entries = getHistoryDisplayEntries();
-  if (entries.length === 0) {
+  const latestApplied = countHistory.past[countHistory.past.length - 1];
+
+  // 横表示の簡易履歴は、現在有効な最後の操作のみ。
+  // 縦表示の通常一覧とは別の表示領域に置き、縦表示では非表示にする。
+  if (latestApplied) {
+    countHistoryCurrent.appendChild(createHistoryRow(latestApplied, false, latestApplied));
+  } else {
+    const row = document.createElement("tr");
+    const empty = document.createElement("td");
+    empty.colSpan = 4;
+    empty.className = "count-history-empty";
+    empty.textContent = entries.length ? "有効な履歴はありません" : "履歴はありません";
+    row.appendChild(empty);
+    countHistoryCurrent.appendChild(row);
+  }
+
+  // 縦表示はUndo済みのグレー行も含む元の履歴順を維持する。
+  // Undoを何十回繰り返しても青い行が一覧に含まれるよう、必要な分だけ表示件数を広げる。
+  if (latestApplied) {
+    const position = entries.findIndex(({ entry }) => entry === latestApplied);
+    const needed = entries.length - position;
+    if (position >= 0 && needed > historyShown) {
+      historyShown = Math.ceil(needed / HISTORY_PAGE_SIZE) * HISTORY_PAGE_SIZE;
+    }
+  }
+  // 青い行を別の位置に移したり、一覧から除外したりしない。
+  const recent = entries.slice(-historyShown).reverse();
+  const fragment = document.createDocumentFragment();
+  if (recent.length === 0) {
     const row = document.createElement("tr");
     const empty = document.createElement("td");
     empty.colSpan = 4;
     empty.className = "count-history-empty";
     empty.textContent = "履歴はありません";
     row.appendChild(empty);
-    countHistoryList.appendChild(row);
+    fragment.appendChild(row);
   } else {
-    // 操作した時系列を保ち、取り消した履歴もその場所に残す。
-    const recent = entries.slice(-historyShown).reverse();
-    const latestApplied = countHistory.past[countHistory.past.length - 1];
-    const fragment = document.createDocumentFragment();
     recent.forEach(({ entry, undone }) => {
       fragment.appendChild(createHistoryRow(entry, undone, latestApplied));
     });
-    countHistoryList.appendChild(fragment);
   }
+  countHistoryList.appendChild(fragment);
   countHistoryMore.hidden = entries.length <= historyShown;
+}
+
+// Undo/Redo後、縦表示では青い行が列見出しの直下に来るよう、
+// 通常の履歴一覧だけをスクロールする。履歴の順番も内容も変えない。
+function scrollHistoryToLatestApplied() {
+  if (document.documentElement.classList.contains("landscape-mode")) return;
+  const activeRow = countHistoryList.querySelector(".count-history-latest");
+  if (!activeRow) {
+    countHistoryScrollArea.scrollTop = 0;
+    return;
+  }
+
+  // 選択行より後の行が少なくても先頭にスクロールできる余地を確保。
+  const table = countHistoryList.closest("table");
+  const rowTop = activeRow.getBoundingClientRect().top - table.getBoundingClientRect().top;
+  const remainingHeight = table.getBoundingClientRect().height - rowTop;
+  const maxHeight = parseFloat(getComputedStyle(countHistoryScrollArea).maxHeight);
+  const requiredSpace = Number.isFinite(maxHeight) && rowTop > 0
+    ? Math.max(0, maxHeight - remainingHeight) : 0;
+  countHistoryScrollSpace.style.height = `${Math.ceil(requiredSpace) + (requiredSpace > 0 ? 2 : 0)}px`;
+
+  // scrollIntoViewは画面全体も動かすため使わず、履歴一覧のみスクロール。
+  countHistoryScrollArea.scrollTop = rowTop;
 }
 
 countHistoryMore.addEventListener("click", function() {
@@ -501,6 +553,7 @@ function stepCountHistory(isRedo) {
   // 別モードへの切り替え時だけリスト全体を再描画する。
   if (switchedMode || !refreshVisibleCounterNumber(target)) renderCounters();
   renderCountHistory();
+  scrollHistoryToLatestApplied();
   // 別モードの操作を戻した場合は、その小役が見える位置に移動。
   const location = (target.modeId === COMMON_MODE_ID ? commonCounterList : counterList)
     .querySelector(`[data-counter-id="${target.id}"]`);

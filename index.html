@@ -108,7 +108,7 @@
               <h2 id="count-history-heading">履歴</h2>
               <div class="count-history-actions">
                 <button type="button" id="count-undo" class="count-history-button"
-                        aria-label="元に戻す" disabled>← 戻る</button>
+                        aria-label="元に戻す" disabled>← 元に戻す</button>
                 <button type="button" id="count-redo" class="count-history-button"
                         aria-label="やり直す" disabled>→ やり直し</button>
               </div>
@@ -132,10 +132,18 @@
                 </thead>
               </table>
             </div>
+            <!-- 横表示専用：現時点で確定している最新の履歴1件。縦表示では非表示。 -->
+            <div class="count-history-current">
+              <table class="count-history-table" aria-label="現在の最新履歴">
+                <tbody id="count-history-current" aria-live="polite"></tbody>
+              </table>
+            </div>
+            <!-- 縦表示：履歴を時系列の順序のままスクロール表示する。 -->
             <div class="count-history-table-wrap">
               <table class="count-history-table" aria-label="カウント履歴">
                 <tbody id="count-history-list" aria-live="polite"></tbody>
               </table>
+              <div id="count-history-scroll-space" aria-hidden="true"></div>
             </div>
             <button type="button" class="count-history-more" id="count-history-more" hidden>さらに表示</button>
           </section>
