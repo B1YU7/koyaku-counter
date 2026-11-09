@@ -2042,3 +2042,12 @@ html.landscape-mode body {
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* iOSのキーボードを閉じた後、100dvhの再計算が遅れて
+   下部タブの位置が浮いたままになる場合を避ける。
+   縦表示だけ、既に100%に固定されているhtml/bodyの高さを使う。 */
+@supports (-webkit-touch-callout: none) {
+  html:not(.landscape-mode) .container {
+    height: 100%;
+  }
+}

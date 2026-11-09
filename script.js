@@ -2160,3 +2160,42 @@ rotateLayoutButton.addEventListener("click", () => {
   appContent.scrollTop = 0;
 });
 applyManualLayout();
+
+// iOSで文字入力後にキーボードを閉じたとき、画面全体に残った
+// スクロール位置のずれを解消する（中央コンテンツのスクロール位置は維持）。
+// WebKitではキーボードの閉じるアニメーションが終わってから
+// viewportの位置が更新されることがあるため、少し後にも確認する。
+const isIOSViewport = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+if (isIOSViewport) {
+  function isKeyboardTextField(element) {
+    if (!(element instanceof HTMLElement)) return false;
+    if (element.isContentEditable || element instanceof HTMLTextAreaElement) return true;
+    if (!(element instanceof HTMLInputElement)) return false;
+    return !["checkbox", "radio", "button", "submit", "reset", "color", "file", "range", "hidden"].includes(element.type);
+  }
+
+  function restorePagePositionAfterKeyboard() {
+    // 別の入力欄に移った場合は、入力中の画面位置に触れない。
+    if (isKeyboardTextField(document.activeElement)) return;
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }
+
+  let keyboardRestoreUntil = 0;
+  document.addEventListener("focusout", event => {
+    if (!isKeyboardTextField(event.target)) return;
+    keyboardRestoreUntil = performance.now() + 850;
+    requestAnimationFrame(restorePagePositionAfterKeyboard);
+    setTimeout(restorePagePositionAfterKeyboard, 300);
+    setTimeout(restorePagePositionAfterKeyboard, 650);
+  }, true);
+
+  // キーボードが閉じる際に発生する可視領域のサイズ変更にも追従する。
+  window.visualViewport?.addEventListener("resize", () => {
+    if (performance.now() < keyboardRestoreUntil) {
+      requestAnimationFrame(restorePagePositionAfterKeyboard);
+    }
+  });
+}
