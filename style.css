@@ -85,11 +85,11 @@ h1 {
   flex-wrap: wrap;
   justify-content: center;
   /* 列数を固定し、端数の行だけ中央に寄せる */
-  --counter-gap: 24px;
+  --counter-gap: 16px;
   column-gap: var(--counter-gap);
   row-gap: 48px; /* 小役同士の縦間隔をさらに広げる */
   /* カウントボタンの大きさ。列数ごとに上書きする */
-  --counter-size: 109px;
+  --counter-size: 121px;
 }
 
 /* 1～6列を切り替える */
@@ -145,7 +145,7 @@ h1 {
   color: white;
 
   border: none;
-  border-radius: 20px;
+  border-radius: 22px;
 
   display: flex;
   flex-direction: column;
@@ -594,21 +594,21 @@ h1 {
 
 /* ボタンの見た目はtheme.cssのtheme-toggle / theme-optionを共用 */
 
-/* 前回の縮小版からさらに約19%小さくする（0.9×0.9） */
-.counter-list[data-columns="2"] { --counter-size: 92px; }
+/* 直前の縮小版から一回り拡大（約11%） */
+.counter-list[data-columns="2"] { --counter-size: 102px; }
 .counter-list[data-columns="2"] .number { font-size: clamp(34px, 6vw, 60px); }
-.counter-list[data-columns="3"] { --counter-size: 77px; }
+.counter-list[data-columns="3"] { --counter-size: 86px; }
 .counter-list[data-columns="3"] .number { font-size: clamp(28px, 5vw, 48px); }
-.counter-list[data-columns="4"] { --counter-size: 66px; }
+.counter-list[data-columns="4"] { --counter-size: 73px; }
 .counter-list[data-columns="4"] .number { font-size: clamp(24px, 4vw, 42px); }
-.counter-list[data-columns="5"] { --counter-size: 55px; }
-.counter-list[data-columns="6"] { --counter-size: 48px; }
+.counter-list[data-columns="5"] { --counter-size: 61px; }
+.counter-list[data-columns="6"] { --counter-size: 53px; }
 
 /* 小さな正方形では角丸の半径だけ調整する */
-.counter-list[data-shape="square"][data-columns="3"] .counter { border-radius: 15px; }
-.counter-list[data-shape="square"][data-columns="4"] .counter { border-radius: 12px; }
-.counter-list[data-shape="square"][data-columns="5"] .counter { border-radius: 11px; }
-.counter-list[data-shape="square"][data-columns="6"] .counter { border-radius: 9px; }
+.counter-list[data-shape="square"][data-columns="3"] .counter { border-radius: 17px; }
+.counter-list[data-shape="square"][data-columns="4"] .counter { border-radius: 13px; }
+.counter-list[data-shape="square"][data-columns="5"] .counter { border-radius: 12px; }
+.counter-list[data-shape="square"][data-columns="6"] .counter { border-radius: 10px; }
 
 
 .counter-list[data-columns="3"] .title,
@@ -637,18 +637,18 @@ h1 {
 
   /* スマホでも選択した1～6列を維持する */
   .counter-list {
-    --counter-gap: 14px;
+    --counter-gap: 8px;
     row-gap: 40px; /* スマホでも上下の小役の間隔を広げる */
   }
 
-  .counter-list[data-columns="2"] { --counter-size: 80px; }
-  .counter-list[data-columns="3"] { --counter-size: 64px; }
-  .counter-list[data-columns="4"] { --counter-size: 57px; }
-  .counter-list[data-columns="5"] { --counter-size: 47px; }
-  .counter-list[data-columns="6"] { --counter-size: 41px; }
+  .counter-list[data-columns="2"] { --counter-size: 89px; }
+  .counter-list[data-columns="3"] { --counter-size: 71px; }
+  .counter-list[data-columns="4"] { --counter-size: 63px; }
+  .counter-list[data-columns="5"] { --counter-size: 52px; }
+  .counter-list[data-columns="6"] { --counter-size: 46px; }
   /* 5・6列はスマホでボタンがつぶれないように列間隔を詰める */
   .counter-list[data-columns="5"],
-  .counter-list[data-columns="6"] { --counter-gap: 5px; }
+  .counter-list[data-columns="6"] { --counter-gap: 4px; }
 
 
   .counter-list[data-columns="3"] .number { font-size: clamp(24px, 7vw, 38px); }
@@ -852,6 +852,23 @@ html, body {
   white-space: nowrap;
 }
 
+/* ヘッダーのタブタイトルとボタン内の文字列は選択できないようにする。
+   input / textarea などの文字入力・選択操作は変更しない。 */
+#header-title,
+button,
+button * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 上側のモード切替タブと下側の固定タブは文字選択を無効化する。 */
+.counter-mode-tabs,
+.bottom-tabs {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 /* 未実装機能のボタンは押せないことがわかるようにする */
 .reset-all-button:disabled {
   opacity: 0.55;
@@ -938,7 +955,7 @@ html, body {
   align-items: center;
   column-gap: 8px;
   width: 100%;
-  margin: 0 0 14px;
+  margin: 8px 0 22px; /* 総ゲーム数の上と下の余白を各8px広げる */
   color: var(--text, #222);
   font-size: 15px;
   font-weight: bold;
@@ -1597,7 +1614,7 @@ html, body {
 
 /* =====================================================
    更新：小役名は枠なし。並び替えは通常画面の上下ボタンから。
-   削除はスワイプ／長押し／右クリックの専用操作。
+   削除は長押し／右クリックの専用操作。
 ===================================================== */
 .setting-name-row .setting-input {
   border: 0;
@@ -1639,21 +1656,6 @@ html, body {
 }
 .always-move-button:disabled { opacity: .32; cursor: default; }
 .gesture-row { touch-action: pan-y; -webkit-touch-callout: none; }
-.gesture-delete-reveal {
-  display: none;
-  position: absolute;
-  inset: 0 0 0 auto;
-  width: 72px;
-  border: 0;
-  background: #d9534f;
-  color: #fff;
-  font: inherit;
-  font-weight: bold;
-  border-radius: 7px;
-  z-index: 4;
-  cursor: pointer;
-}
-.gesture-revealed > .gesture-delete-reveal { display: block; }
 .gesture-context-menu {
   position: absolute;
   top: calc(100% - 8px);
@@ -1785,10 +1787,10 @@ html, body {
 .landscape-mode .count-history-table { font-size: 11px; }
 .landscape-mode .count-history-table th,
 .landscape-mode .count-history-table td { padding: 6px 3px; }
-.landscape-mode .counter-list { row-gap: 20px; --counter-gap: 8px; }
+.landscape-mode .counter-list { row-gap: 20px; --counter-gap: 6px; }
 .landscape-mode .counter-list[data-columns="5"],
-.landscape-mode .counter-list[data-columns="6"] { --counter-gap: 3px; }
-.landscape-mode .total-games-row { margin-bottom: 6px; }
+.landscape-mode .counter-list[data-columns="6"] { --counter-gap: 2px; }
+.landscape-mode .total-games-row { margin: 8px 0 14px; }
 .landscape-mode .count-mode-row { margin-bottom: 10px; }
 .landscape-mode .common-counter-area { margin-bottom: 12px; }
 .landscape-mode .common-counter-area:not([hidden]):has(+ .counter-mode-tabs:not([hidden])) { margin-bottom: 22px; }
@@ -1805,7 +1807,7 @@ html, body {
   transform: translate(-50%, -50%) rotate(90deg);
 }
 
-/* 横表示中の行スワイプは回転後の座標軸に合わせて解釈する */
+/* 手動横表示中は見た目の縦スクロールに合わせてタッチ操作を許可 */
 .landscape-mode .gesture-row { touch-action: pan-x; }
 
 /* =====================================================
@@ -1839,7 +1841,6 @@ html, body {
    ・縦表示は縦スクロールのみ
    ・手動横表示では、90度回転後の縦方向のみスクロール
    ・モード切替タブは行折り返しにして、スクロールなしでも全件選べる
-   ・小役削除用の左スワイプはJSで判定するため維持
 ===================================================== */
 html,
 body {

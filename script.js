@@ -1291,7 +1291,7 @@ function renderSettings() {
   }
   // モードがなければ「共通」という区別が不要なので通常の名称にする。
   const commonTitle = commonSettingsToggle.querySelector("span:first-child");
-  if (commonTitle) commonTitle.textContent = modes.length === 0 ? "カウンター" : "共通カウンター";
+  if (commonTitle) commonTitle.textContent = modes.length === 0 ? "カウンター" : "全モード共通";
   commonSettingsToggle.setAttribute("aria-expanded", String(commonSettingsOpen));
   commonSettingsContent.hidden = !commonSettingsOpen;
   commonSettingsToggle.querySelector(".accordion-chevron").textContent = commonSettingsOpen ? "⌃" : "⌄";
@@ -1326,52 +1326,36 @@ function createMoveControls(canUp, canDown, onUp, onDown, subject) {
   return group;
 }
 
-// iPhone: 左スワイプで削除を表示、長押しで削除メニュー。
-// Windows: 右クリックで同じ削除メニュー。縦スクロール・通常タップは維持。
+// iPhone: 設定行の長押しで削除メニューを表示。
+// Windows: 右クリックで同じ削除メニュー。スクロールや通常タップは維持。
 let activeRowActionClose = null;
 function installRowActions(row, onDelete, label) {
   row.classList.add("gesture-row");
-  const reveal = document.createElement("button");
-  reveal.type = "button";
-  reveal.className = "gesture-delete-reveal";
-  reveal.textContent = "削除";
-  reveal.setAttribute("aria-label", `${label}を削除`);
-  reveal.addEventListener("click", event => {
-    event.stopPropagation();
-    close();
-    onDelete();
-  });
   const menu = document.createElement("div");
   menu.className = "gesture-context-menu";
   menu.hidden = true;
   const menuDelete = document.createElement("button");
   menuDelete.type = "button";
   menuDelete.textContent = "削除";
+  menuDelete.setAttribute("aria-label", `${label}を削除`);
   menuDelete.addEventListener("click", event => {
     event.stopPropagation();
     close();
     onDelete();
   });
   menu.appendChild(menuDelete);
-  row.append(reveal, menu);
+  row.appendChild(menu);
 
   function close() {
-    row.classList.remove("gesture-revealed");
     menu.hidden = true;
     if (activeRowActionClose === close) activeRowActionClose = null;
   }
   function openContext() {
     if (activeRowActionClose && activeRowActionClose !== close) activeRowActionClose();
-    row.classList.remove("gesture-revealed");
     menu.hidden = false;
     activeRowActionClose = close;
   }
-  function openSwipe() {
-    if (activeRowActionClose && activeRowActionClose !== close) activeRowActionClose();
-    menu.hidden = true;
-    row.classList.add("gesture-revealed");
-    activeRowActionClose = close;
-  }
+
   let startX = 0;
   let startY = 0;
   let pressTimer = null;
@@ -1383,7 +1367,7 @@ function installRowActions(row, onDelete, label) {
   });
   row.addEventListener("pointerdown", event => {
     if (event.pointerType !== "touch") return;
-    if (event.target.closest(".gesture-context-menu,.gesture-delete-reveal,.always-move-controls,.color-open-button,.color-picker-panel")) return;
+    if (event.target.closest(".gesture-context-menu,.always-move-controls,.color-open-button,.color-picker-panel")) return;
     startX = event.clientX;
     startY = event.clientY;
     triggered = false;
@@ -1397,28 +1381,18 @@ function installRowActions(row, onDelete, label) {
   });
   row.addEventListener("pointermove", event => {
     if (!pressed || event.pointerType !== "touch") return;
-    if (Math.abs(event.clientX - startX) > 12 || Math.abs(event.clientY - startY) > 12) clearTimeout(pressTimer);
+    if (Math.abs(event.clientX - startX) > 12 || Math.abs(event.clientY - startY) > 12) {
+      clearTimeout(pressTimer);
+      pressed = false;
+    }
   });
-  function finish(event) {
-    if (!pressed) return;
+  function finish() {
     pressed = false;
     clearTimeout(pressTimer);
-    if (event.type === "pointerup" && !triggered) {
-      const dx = event.clientX - startX;
-      const dy = event.clientY - startY;
-      // 横表示では見た目の「左」が端末の上方向に相当する。
-      const landscape = document.documentElement.classList.contains("landscape-mode");
-      const along = landscape ? dy : dx;
-      const across = landscape ? dx : dy;
-      if (Math.abs(along) > 45 && Math.abs(along) > Math.abs(across) * 1.3) {
-        triggered = true; // スワイプ直後の誤タップや入力欄へのフォーカスを防ぐ
-        if (along < 0) openSwipe(); else close();
-      }
-    }
   }
   row.addEventListener("pointerup", finish);
   row.addEventListener("pointercancel", finish);
-  row.addEventListener("pointerleave", event => { if (event.pointerType === "touch") clearTimeout(pressTimer); });
+  row.addEventListener("pointerleave", event => { if (event.pointerType === "touch") finish(); });
   row.addEventListener("click", event => {
     if (triggered) { event.preventDefault(); event.stopPropagation(); triggered = false; }
   }, true);
@@ -2008,7 +1982,7 @@ probabilityCounterButton.addEventListener("click", function() {
   probabilityCounterMenu.replaceChildren();
   if (!shouldOpen) return;
   // 保存された計算式はモードをまたいで共有。選択メニューのみグループ表示する。
-  const groups = [{ id: COMMON_MODE_ID, name: "共通カウンター" }, ...modes];
+  const groups = [{ id: COMMON_MODE_ID, name: "全モード共通" }, ...modes];
   groups.forEach(group => {
     const members = groupCounters(group.id);
     if (!members.length) return;
