@@ -1104,15 +1104,21 @@ button * {
   white-space: nowrap;
 }
 .count-history-button:disabled { opacity: .4; cursor: not-allowed; }
-/* 履歴は枠内だけ縦スクロール（必要なら横方向もスクロール） */
+/* 列見出しはスクロール領域の外に置き、iOSの端での引っ張りにも動かされない。 */
+.count-history-table-head {
+  max-width: 100%;
+  overflow: hidden;
+  /* 表本体と同じスクロールバー用スペースを確保し、列位置を揃える。 */
+  scrollbar-gutter: stable;
+}
+/* スクロールするのは履歴データだけ。見出しは領域の外に固定する。 */
 .count-history-table-wrap {
   max-width: 100%;
-  max-height: 268px;
-  overflow-x: auto;
+  max-height: 231px; /* 従来の268pxから見出しの高さだけ除く */
+  overflow-x: hidden;
   overflow-y: auto;
-  /* スクロールバーの有無による表の幅の変化を防ぐ */
   scrollbar-gutter: stable;
-  overscroll-behavior: contain;
+  overscroll-behavior: none; /* 端での引っ張りや外側へのスクロール伝播を抑える */
   -webkit-overflow-scrolling: touch;
 }
 .count-history-table {
@@ -1132,19 +1138,16 @@ button * {
   vertical-align: middle;
 }
 .count-history-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   background: var(--surface-soft, #f8f8f8);
   font-size: 12px;
   font-weight: bold;
   white-space: nowrap;
 }
-/* PC・スマホ共通の列幅。見出しとデータは同じ列幅を共有する。 */
-.count-history-table th:nth-child(1) { width: 25%; }
-.count-history-table th:nth-child(2) { width: 19%; }
-.count-history-table th:nth-child(3) { width: 21%; }
-.count-history-table th:nth-child(4) { width: 35%; }
+/* 見出し表とデータ表で、各列の幅を同じにする。 */
+.count-history-table th:nth-child(1), .count-history-table td:nth-child(1) { width: 25%; }
+.count-history-table th:nth-child(2), .count-history-table td:nth-child(2) { width: 19%; }
+.count-history-table th:nth-child(3), .count-history-table td:nth-child(3) { width: 21%; }
+.count-history-table th:nth-child(4), .count-history-table td:nth-child(4) { width: 35%; }
 .count-history-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .count-history-name { overflow-wrap: anywhere; min-width: 42px; }
 .count-history-operation { font-weight: bold; white-space: nowrap; }
@@ -1782,7 +1785,8 @@ button * {
 .landscape-mode .count-history-actions { width: 100%; gap: 6px; }
 .landscape-mode .count-history-button { min-height: 32px; padding: 4px; font-size: 12px; }
 .landscape-mode .count-history-table-wrap {
-  max-height: max(60px, calc(100dvw - 213px));
+  /* 横表示でも従来の履歴エリア全体の高さを維持する。 */
+  max-height: max(36px, calc(100dvw - 239px));
 }
 .landscape-mode .count-history-table { font-size: 11px; }
 .landscape-mode .count-history-table th,

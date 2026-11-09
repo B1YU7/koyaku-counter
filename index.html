@@ -113,8 +113,9 @@
                         aria-label="やり直す" disabled>→ やり直し</button>
               </div>
             </div>
-            <div class="count-history-table-wrap">
-              <table class="count-history-table" aria-label="カウント履歴">
+            <!-- 列見出しを履歴のスクロール領域から切り離し、端での引っ張りにも連動させない。 -->
+            <div class="count-history-table-head">
+              <table class="count-history-table" aria-label="カウント履歴の列見出し">
                 <thead>
                   <tr>
                     <th scope="col">日時</th>
@@ -129,6 +130,10 @@
                     </th>
                   </tr>
                 </thead>
+              </table>
+            </div>
+            <div class="count-history-table-wrap">
+              <table class="count-history-table" aria-label="カウント履歴">
                 <tbody id="count-history-list" aria-live="polite"></tbody>
               </table>
             </div>
