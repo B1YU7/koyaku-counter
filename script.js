@@ -2161,41 +2161,49 @@ rotateLayoutButton.addEventListener("click", () => {
 });
 applyManualLayout();
 
-// iOSで文字入力後にキーボードを閉じたとき、画面全体に残った
-// スクロール位置のずれを解消する（中央コンテンツのスクロール位置は維持）。
-// WebKitではキーボードの閉じるアニメーションが終わってから
-// viewportの位置が更新されることがあるため、少し後にも確認する。
+// iPhone/iPad はキーボードの開閉時にレイアウト用viewportと
+// 実際に見える領域(visualViewport)の大きさが異なることがある。
+// ページを強制スクロールしたり端末ごとの固定値を足すのではなく、
+// 見えている領域の実測値へアプリの枠全体を追従させる。
+// CSS 100dvh は visualViewport が使えない場合のフォールバック。
 const isIOSViewport = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-if (isIOSViewport) {
-  function isKeyboardTextField(element) {
-    if (!(element instanceof HTMLElement)) return false;
-    if (element.isContentEditable || element instanceof HTMLTextAreaElement) return true;
-    if (!(element instanceof HTMLInputElement)) return false;
-    return !["checkbox", "radio", "button", "submit", "reset", "color", "file", "range", "hidden"].includes(element.type);
+if (isIOSViewport && window.visualViewport) {
+  const viewport = window.visualViewport;
+  const root = document.documentElement;
+  let viewportFramePending = false;
+
+  function updateVisibleAppFrame() {
+    const { height, width, offsetTop, offsetLeft } = viewport;
+    // 一時的な無効値を反映して画面を消してしまわないようにする。
+    if (![height, width, offsetTop, offsetLeft].every(Number.isFinite) ||
+        height <= 0 || width <= 0) return;
+
+    root.style.setProperty("--app-visual-height", `${height}px`);
+    root.style.setProperty("--app-visual-width", `${width}px`);
+    root.style.setProperty("--app-visual-top", `${offsetTop}px`);
+    root.style.setProperty("--app-visual-left", `${offsetLeft}px`);
+    root.classList.add("ios-viewport-managed");
   }
 
-  function restorePagePositionAfterKeyboard() {
-    // 別の入力欄に移った場合は、入力中の画面位置に触れない。
-    if (isKeyboardTextField(document.activeElement)) return;
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    window.scrollTo(0, 0);
+  function scheduleVisibleAppFrame() {
+    if (viewportFramePending) return;
+    viewportFramePending = true;
+    requestAnimationFrame(() => {
+      viewportFramePending = false;
+      updateVisibleAppFrame();
+    });
   }
 
-  let keyboardRestoreUntil = 0;
-  document.addEventListener("focusout", event => {
-    if (!isKeyboardTextField(event.target)) return;
-    keyboardRestoreUntil = performance.now() + 850;
-    requestAnimationFrame(restorePagePositionAfterKeyboard);
-    setTimeout(restorePagePositionAfterKeyboard, 300);
-    setTimeout(restorePagePositionAfterKeyboard, 650);
-  }, true);
-
-  // キーボードが閉じる際に発生する可視領域のサイズ変更にも追従する。
-  window.visualViewport?.addEventListener("resize", () => {
-    if (performance.now() < keyboardRestoreUntil) {
-      requestAnimationFrame(restorePagePositionAfterKeyboard);
-    }
+  // キーボードの開閉・アドレスバーの変化・表示領域の移動に追従。
+  viewport.addEventListener("resize", scheduleVisibleAppFrame);
+  viewport.addEventListener("scroll", scheduleVisibleAppFrame);
+  window.addEventListener("resize", scheduleVisibleAppFrame);
+  window.addEventListener("pageshow", scheduleVisibleAppFrame);
+  document.addEventListener("focusin", scheduleVisibleAppFrame, true);
+  document.addEventListener("focusout", scheduleVisibleAppFrame, true);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) scheduleVisibleAppFrame();
   });
+  updateVisibleAppFrame();
 }

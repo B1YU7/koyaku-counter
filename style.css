@@ -2043,11 +2043,14 @@ html.landscape-mode body {
   user-select: none;
 }
 
-/* iOSのキーボードを閉じた後、100dvhの再計算が遅れて
-   下部タブの位置が浮いたままになる場合を避ける。
-   縦表示だけ、既に100%に固定されているhtml/bodyの高さを使う。 */
-@supports (-webkit-touch-callout: none) {
-  html:not(.landscape-mode) .container {
-    height: 100%;
-  }
+/* iPhone / iPad の縦表示では、ソフトキーボードやブラウザーUIで変わる
+   実際の可視領域にアプリ全体（上部ヘッダー・中央・下部タブ）を合わせる。
+   100% はレイアウト用viewport基準となって下部が見切れる場合があるため使わない。
+   初期値は従来の100dvh。JSが可視領域の実測に成功した場合のみ適用する。 */
+html.ios-viewport-managed:not(.landscape-mode) .container {
+  position: fixed;
+  top: var(--app-visual-top, 0px);
+  left: var(--app-visual-left, 0px);
+  width: var(--app-visual-width, 100%);
+  height: var(--app-visual-height, 100dvh);
 }
