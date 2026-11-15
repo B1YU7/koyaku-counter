@@ -182,3 +182,47 @@ body {
     flex: 1;
   }
 }
+/* =====================================
+   ダークモードのスクロールバーを見やすくする
+   ・中央のスクロール領域、履歴、横表示のカウンター、カラーピッカー
+   ・ライトモードの見た目とスクロール操作は変更しない
+===================================== */
+:root[data-theme="dark"] .app-content,
+:root[data-theme="dark"] .counter-work-area,
+:root[data-theme="dark"] .count-history-table-wrap,
+:root[data-theme="dark"] .color-picker-panel {
+  scrollbar-color: #AFBDD1 #2C394A;
+}
+
+/* WebKit系ブラウザーでスクロールバーの色を指定する */
+:root[data-theme="dark"] .app-content::-webkit-scrollbar,
+:root[data-theme="dark"] .counter-work-area::-webkit-scrollbar,
+:root[data-theme="dark"] .count-history-table-wrap::-webkit-scrollbar,
+:root[data-theme="dark"] .color-picker-panel::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+:root[data-theme="dark"] .app-content::-webkit-scrollbar-track,
+:root[data-theme="dark"] .counter-work-area::-webkit-scrollbar-track,
+:root[data-theme="dark"] .count-history-table-wrap::-webkit-scrollbar-track,
+:root[data-theme="dark"] .color-picker-panel::-webkit-scrollbar-track {
+  background: #2C394A;
+  border-radius: 10px;
+}
+
+:root[data-theme="dark"] .app-content::-webkit-scrollbar-thumb,
+:root[data-theme="dark"] .counter-work-area::-webkit-scrollbar-thumb,
+:root[data-theme="dark"] .count-history-table-wrap::-webkit-scrollbar-thumb,
+:root[data-theme="dark"] .color-picker-panel::-webkit-scrollbar-thumb {
+  background: #AFBDD1;
+  border: 2px solid #2C394A;
+  border-radius: 10px;
+}
+
+:root[data-theme="dark"] .app-content::-webkit-scrollbar-corner,
+:root[data-theme="dark"] .counter-work-area::-webkit-scrollbar-corner,
+:root[data-theme="dark"] .count-history-table-wrap::-webkit-scrollbar-corner,
+:root[data-theme="dark"] .color-picker-panel::-webkit-scrollbar-corner {
+  background: #2C394A;
+}

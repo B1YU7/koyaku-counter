@@ -100,7 +100,9 @@
             <div class="counter-list" id="common-counter-list"></div>
           </div>
           <div class="counter-mode-tabs" id="counter-mode-tabs" role="group" aria-label="モード切り替え" hidden></div>
-          <div class="counter-list" id="counter-list"></div>
+          <div class="mode-counter-area">
+            <div class="counter-list" id="counter-list"></div>
+          </div>
           </div><!-- counter-work-area -->
           <!-- 数値変更の履歴。上が最新（Undo/Redoは全小役共通） -->
           <section class="count-history-section" aria-labelledby="count-history-heading">
@@ -167,6 +169,7 @@
             <div class="probability-editor-top">
               <button type="button" id="probability-back" class="probability-secondary-button">← 戻る</button>
               <h2 id="probability-editor-title">確率項目を作成</h2>
+              <button type="button" id="probability-editor-delete" class="probability-editor-delete" hidden>削除</button>
             </div>
             <label class="probability-field-label" for="probability-name">項目名</label>
             <input type="text" id="probability-name" class="probability-name-input"
@@ -190,9 +193,15 @@
               <button type="button" id="probability-clear" class="probability-secondary-button">式をクリア</button>
             </div>
             <div class="probability-preview" aria-live="polite">
-              <span class="probability-preview-label">計算結果</span>
+              <div class="probability-preview-top">
+                <span class="probability-preview-label">計算結果</span>
+                <div class="probability-format-toggle" role="group" aria-label="計算結果の表示形式">
+                  <button type="button" data-probability-format="fraction" aria-pressed="true">分数</button>
+                  <button type="button" data-probability-format="percent" aria-pressed="false">％</button>
+                </div>
+              </div>
               <strong id="probability-preview-value">—</strong>
-              <small id="probability-preview-note"></small>
+              <small id="probability-preview-note" hidden></small>
             </div>
             <button type="button" id="probability-save" class="button probability-save" disabled>保存</button>
           </div>

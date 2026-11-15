@@ -4,7 +4,7 @@
 // ===================================
 
 const MAX_COUNTERS = 15;
-const MAX_MODES = 4;
+const MAX_MODES = 3;
 const MIN_COUNTERS = 1;
 // 小役ごとのカウント値は3桁（0〜999）まで。総ゲーム数には適用しない。
 const MAX_COUNT_VALUE = 999;
@@ -462,27 +462,10 @@ function renderCountHistory() {
   countHistoryMore.hidden = entries.length <= historyShown;
 }
 
-// Undo/Redo後、縦表示では青い行が列見出しの直下に来るよう、
-// 通常の履歴一覧だけをスクロールする。履歴の順番も内容も変えない。
-function scrollHistoryToLatestApplied() {
-  if (document.documentElement.classList.contains("landscape-mode")) return;
-  const activeRow = countHistoryList.querySelector(".count-history-latest");
-  if (!activeRow) {
-    countHistoryScrollArea.scrollTop = 0;
-    return;
-  }
-
-  // 選択行より後の行が少なくても先頭にスクロールできる余地を確保。
-  const table = countHistoryList.closest("table");
-  const rowTop = activeRow.getBoundingClientRect().top - table.getBoundingClientRect().top;
-  const remainingHeight = table.getBoundingClientRect().height - rowTop;
-  const maxHeight = parseFloat(getComputedStyle(countHistoryScrollArea).maxHeight);
-  const requiredSpace = Number.isFinite(maxHeight) && rowTop > 0
-    ? Math.max(0, maxHeight - remainingHeight) : 0;
-  countHistoryScrollSpace.style.height = `${Math.ceil(requiredSpace) + (requiredSpace > 0 ? 2 : 0)}px`;
-
-  // scrollIntoViewは画面全体も動かすため使わず、履歴一覧のみスクロール。
-  countHistoryScrollArea.scrollTop = rowTop;
+// カウント操作や履歴の削除後は、最新の行を表示するため一覧だけを先頭へ戻す。
+// ページ全体や履歴ヘッダーはスクロールさせない。
+function scrollHistoryToTop() {
+  countHistoryScrollArea.scrollTop = 0;
 }
 
 countHistoryMore.addEventListener("click", function() {
@@ -515,6 +498,7 @@ function changeCount(counterData, newValue, action) {
   // 数値だけの変更では、ボタンと長押しイベントを作り直さない。
   if (!refreshVisibleCounterNumber(counterData)) renderCounters();
   renderCountHistory();
+  scrollHistoryToTop();
   return true;
 }
 
@@ -524,9 +508,14 @@ function dropDeletedCounterHistory(id) {
   countHistory.future = countHistory.future.filter(entry => entry.counterId !== id);
   saveCountHistory();
   renderCountHistory();
+  scrollHistoryToTop();
 }
 
 function stepCountHistory(isRedo) {
+  // Undo/Redo後も画面と履歴の現在位置を維持する。
+  // 対象の小役が別モードなら、表示モードだけを自動で切り替える。
+  const mainScrollTop = appContent.scrollTop;
+  const historyScrollTop = countHistoryScrollArea.scrollTop;
   const from = isRedo ? countHistory.future : countHistory.past;
   const to = isRedo ? countHistory.past : countHistory.future;
   const entry = from[from.length - 1];
@@ -536,6 +525,8 @@ function stepCountHistory(isRedo) {
     from.pop();
     saveCountHistory();
     renderCountHistory();
+    countHistoryScrollArea.scrollTop = historyScrollTop;
+    appContent.scrollTop = mainScrollTop;
     return;
   }
   // 旧履歴に5桁以上の数値が残っていても、Undo/Redoで上限を超えない。
@@ -554,11 +545,9 @@ function stepCountHistory(isRedo) {
   // 別モードへの切り替え時だけリスト全体を再描画する。
   if (switchedMode || !refreshVisibleCounterNumber(target)) renderCounters();
   renderCountHistory();
-  scrollHistoryToLatestApplied();
-  // 別モードの操作を戻した場合は、その小役が見える位置に移動。
-  const location = (target.modeId === COMMON_MODE_ID ? commonCounterList : counterList)
-    .querySelector(`[data-counter-id="${target.id}"]`);
-  if (location && !mainScreen.hidden) location.scrollIntoView({ block: "center", behavior: "smooth" });
+  // Undo/Redoでは履歴や小役へ自動スクロールせず、操作前の位置を保つ。
+  countHistoryScrollArea.scrollTop = historyScrollTop;
+  appContent.scrollTop = mainScrollTop;
 }
 
 countUndoButton.addEventListener("click", () => stepCountHistory(false));
@@ -788,6 +777,7 @@ function renderCounterGroup(targetList, groupCounters) {
     const title = document.createElement("div");
     title.className = "title";
     title.textContent = counterData.name.trim() || `カウンター ${index + 1}`;
+    title.title = title.textContent; // 省略表示でもPCでは名前全体を確認できる。
 
     // 数字を大きく表示するカウントボタン
     const counter = document.createElement("button");
@@ -981,9 +971,10 @@ countEditReset.addEventListener("click", function() {
 const counterEditorStates = new Map();
 let commonSettingsOpen = false;
 let editingModeId = null;
+let reorderSelectedModeId = null; // モード一覧の並び替え対象。カウンター画面の選択モードとは別。
 
 function editorState(groupId) {
-  if (!counterEditorStates.has(groupId)) counterEditorStates.set(groupId, { reorder: false, selectedId: null });
+  if (!counterEditorStates.has(groupId)) counterEditorStates.set(groupId, { selectedId: null });
   return counterEditorStates.get(groupId);
 }
 
@@ -1028,23 +1019,56 @@ function createCounterEditor(groupId) {
   const settingsList = panel.querySelector(".settings-list");
   const addButton = panel.querySelector(".add-button");
   const members = groupCounters(groupId);
+  const state = editorState(groupId);
+  if (!members.some(counter => counter.id === state.selectedId)) state.selectedId = null;
 
-  function moveCounter(counterId, delta) {
-    const current = groupCounters(groupId);
-    const index = current.findIndex(counter => counter.id === counterId);
+  // 選択した小役を、右上の共通上下ボタンで移動する。
+  // ボタンを作り直さずに行だけ移動し、連続タップを妨げない。
+  const heading = panel.querySelector(".counter-settings-heading");
+  const moveControls = createMoveControls(false, false,
+    () => moveSelectedCounter(-1), () => moveSelectedCounter(1), "選択した小役");
+  heading.appendChild(moveControls);
+  function updateSelection() {
+    const index = members.findIndex(counter => counter.id === state.selectedId);
+    const [up, down] = moveControls.querySelectorAll("button");
+    up.disabled = index <= 0;
+    down.disabled = index < 0 || index >= members.length - 1;
+    settingsList.querySelectorAll(".setting-item").forEach((item, i) => {
+      const selected = item.dataset.counterId === state.selectedId;
+      item.classList.toggle("selected", selected);
+      const radio = item.querySelector(".reorder-select");
+      if (radio) {
+        radio.checked = selected;
+        radio.setAttribute("aria-label", `${i + 1}番の小役を並び替え対象に選択`);
+      }
+      const number = item.querySelector(".setting-number");
+      if (number) number.textContent = `${i + 1}.`;
+      const input = item.querySelector(".setting-name-row .setting-input");
+      if (input) input.setAttribute("aria-label", `${i + 1}番の小役名`);
+    });
+  }
+  function moveSelectedCounter(delta) {
+    const index = members.findIndex(counter => counter.id === state.selectedId);
     const next = index + delta;
-    if (index < 0 || next < 0 || next >= current.length) return;
-    const a = counters.indexOf(current[index]);
-    const b = counters.indexOf(current[next]);
+    if (index < 0 || next < 0 || next >= members.length) return;
+    const a = counters.indexOf(members[index]);
+    const b = counters.indexOf(members[next]);
     [counters[a], counters[b]] = [counters[b], counters[a]];
+    [members[index], members[next]] = [members[next], members[index]];
+    const rows = settingsList.children;
+    const selectedRow = rows[index];
+    const adjacentRow = rows[next];
+    if (delta < 0) settingsList.insertBefore(selectedRow, adjacentRow);
+    else settingsList.insertBefore(adjacentRow, selectedRow);
     saveCounters();
     refreshProbabilityDisplay();
     renderCounters();
-    renderSettings();
+    updateSelection();
   }
   function deleteCounter(id) {
     if (!window.confirm("この小役を削除しますか？")) return;
     counters = counters.filter(counter => counter.id !== id);
+    if (state.selectedId === id) state.selectedId = null;
     dropDeletedCounterHistory(id);
     saveCounters();
     refreshProbabilityDisplay();
@@ -1056,8 +1080,22 @@ function createCounterEditor(groupId) {
 
     const item = document.createElement("div");
     item.className = "setting-item";
+    item.dataset.counterId = counterData.id;
 
-    // 通常モードでは通番・小役名・色のみを表示する。
+    // 各行ではなく、右上の共通上下ボタンで選択した小役を移動する。
+    const selector = document.createElement("input");
+    selector.type = "radio";
+    selector.className = "reorder-select";
+    selector.name = `counter-reorder-${groupId}`;
+    selector.value = counterData.id;
+    selector.checked = state.selectedId === counterData.id;
+    selector.setAttribute("aria-label", `${index + 1}番の小役を並び替え対象に選択`);
+    selector.addEventListener("change", () => {
+      state.selectedId = counterData.id;
+      updateSelection();
+    });
+
+    // 小役名・色・通番の構成は維持する。
     // 名前入力
     const input = document.createElement("input");
 
@@ -1316,21 +1354,16 @@ function createCounterEditor(groupId) {
     orderNumber.className = "setting-number";
     orderNumber.textContent = `${index + 1}.`;
 
-    nameRow.append(orderNumber, input, colorSection);
+    nameRow.append(selector, orderNumber, input, colorSection);
 
     item.append(nameRow);
-    const controls = createMoveControls(
-      index > 0, index < members.length - 1,
-      () => moveCounter(counterData.id, -1),
-      () => moveCounter(counterData.id, 1),
-      "小役"
-    );
-    nameRow.appendChild(controls);
     installRowActions(item, () => deleteCounter(counterData.id), `小役「${counterData.name || "名前なし"}」`);
     settingsList.appendChild(item);
 
   });
 
+
+  updateSelection();
 
   if (members.length >= MAX_COUNTERS) {
     addButton.disabled = true;
@@ -1446,7 +1479,7 @@ function installRowActions(row, onDelete, label) {
   });
   row.addEventListener("pointerdown", event => {
     if (event.pointerType !== "touch") return;
-    if (event.target.closest(".gesture-context-menu,.always-move-controls,.color-open-button,.color-picker-panel")) return;
+    if (event.target.closest(".gesture-context-menu,.always-move-controls,.reorder-select,.color-open-button,.color-picker-panel")) return;
     startX = event.clientX;
     startY = event.clientY;
     triggered = false;
@@ -1490,7 +1523,9 @@ function deleteMode(modeId) {
   countHistory.future = countHistory.future.filter(entry => !ids.has(entry.counterId));
   saveCountHistory();
   renderCountHistory();
+  scrollHistoryToTop();
   modes.splice(index, 1);
+  if (reorderSelectedModeId === modeId) reorderSelectedModeId = null;
   counterEditorStates.delete(modeId);
   if (editingModeId === modeId) editingModeId = null;
   if (selectedModeId === modeId) selectedModeId = modes[0]?.id || null;
@@ -1501,23 +1536,57 @@ function deleteMode(modeId) {
   refreshProbabilityDisplay();
 }
 
-function moveMode(modeId, delta) {
-  const index = modes.findIndex(mode => mode.id === modeId);
+function moveSelectedMode(delta) {
+  const index = modes.findIndex(mode => mode.id === reorderSelectedModeId);
   const next = index + delta;
   if (index < 0 || next < 0 || next >= modes.length) return;
   [modes[index], modes[next]] = [modes[next], modes[index]];
+  const selectedRow = modeSettingsList.children[index];
+  const adjacentRow = modeSettingsList.children[next];
+  if (delta < 0) modeSettingsList.insertBefore(selectedRow, adjacentRow);
+  else modeSettingsList.insertBefore(adjacentRow, selectedRow);
   saveModes();
-  renderSettings();
   renderCounters();
+  updateModeReorderSelection();
+}
+
+// モード一覧でも各行には選択ボタンだけ、上下操作は右上にまとめる。
+const modeReorderControls = createMoveControls(false, false,
+  () => moveSelectedMode(-1), () => moveSelectedMode(1), "選択したモード");
+document.querySelector(".mode-settings-heading").appendChild(modeReorderControls);
+function updateModeReorderSelection() {
+  const index = modes.findIndex(mode => mode.id === reorderSelectedModeId);
+  const [up, down] = modeReorderControls.querySelectorAll("button");
+  up.disabled = index <= 0;
+  down.disabled = index < 0 || index >= modes.length - 1;
+  modeSettingsList.querySelectorAll(".mode-settings-item").forEach(item => {
+    const selected = item.dataset.modeId === reorderSelectedModeId;
+    item.classList.toggle("selected", selected);
+    const radio = item.querySelector(".reorder-select");
+    if (radio) radio.checked = selected;
+  });
 }
 
 function renderModeSettings() {
+  if (!modes.some(mode => mode.id === reorderSelectedModeId)) reorderSelectedModeId = null;
   modeSettingsList.replaceChildren();
   modes.forEach((mode, index) => {
     const item = document.createElement("div");
     item.className = "mode-settings-item";
+    item.dataset.modeId = mode.id;
     const row = document.createElement("div");
     row.className = "mode-settings-row";
+    const selector = document.createElement("input");
+    selector.type = "radio";
+    selector.className = "reorder-select";
+    selector.name = "mode-reorder";
+    selector.value = mode.id;
+    selector.checked = reorderSelectedModeId === mode.id;
+    selector.setAttribute("aria-label", `モード「${mode.name || "名前なし"}」を並び替え対象に選択`);
+    selector.addEventListener("change", () => {
+      reorderSelectedModeId = mode.id;
+      updateModeReorderSelection();
+    });
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.className = "mode-row-toggle";
@@ -1561,13 +1630,12 @@ function renderModeSettings() {
       input.focus();
       input.select();
     });
-    const move = createMoveControls(index > 0, index < modes.length - 1,
-      () => moveMode(mode.id, -1), () => moveMode(mode.id, 1), "モード");
-    row.append(toggle, rename, move);
+    row.append(selector, toggle, rename);
     item.appendChild(row);
     installRowActions(item, () => deleteMode(mode.id), `モード「${mode.name || "名前なし"}」`);
     modeSettingsList.appendChild(item);
   });
+  updateModeReorderSelection();
 }
 
 settingsModeBack.addEventListener("click", function() {
@@ -1621,6 +1689,7 @@ resetAllButton.addEventListener("click", function() {
   saveCountHistory();
   renderCounters();
   renderCountHistory();
+  scrollHistoryToTop();
 
 });
 
@@ -1666,6 +1735,20 @@ const tabScreens = {
 // ヘッダーと下部タブはそのまま、中央の画面だけ切り替える
 function selectTab(tabName) {
   if (!Object.hasOwn(tabScreens, tabName)) return;
+
+  // 現在のタブを再タップしたときだけ、詳細画面から一覧に戻る。
+  // すでに一覧（トップ）にいる場合はスクロール位置も変更しない。
+  const activeTab = document.querySelector(".tab-button.active")?.dataset.tab;
+  if (activeTab === tabName) {
+    if (tabName === "settings" && editingModeId) {
+      settingsModeBack.click();
+    } else if (tabName === "probability" && !probabilityEditor.hidden) {
+      if (hasUnsavedProbabilityChanges() &&
+          !window.confirm("保存していない変更があります。\n変更を破棄して一覧に戻りますか？")) return;
+      closeProbabilityEditor();
+    }
+    return;
+  }
 
   Object.entries(tabScreens).forEach(([name, screen]) => {
     screen.hidden = name !== tabName;
@@ -1762,6 +1845,8 @@ const probabilityAddButton = document.getElementById("probability-add");
 const probabilityEditor = document.getElementById("probability-editor");
 const probabilityEditorTitle = document.getElementById("probability-editor-title");
 const probabilityBackButton = document.getElementById("probability-back");
+const probabilityEditorDeleteButton = document.getElementById("probability-editor-delete");
+const probabilityFormatButtons = document.querySelectorAll("[data-probability-format]");
 const probabilityNameInput = document.getElementById("probability-name");
 const probabilityFormulaElement = document.getElementById("probability-formula");
 const probabilityGamesButton = document.getElementById("probability-games");
@@ -1780,6 +1865,11 @@ function validFormulaToken(token) {
   return token.type === "op" && ["+", "-", "*", "/", "(", ")"].includes(token.value);
 }
 
+// 旧データは従来の「1/○○」表示を維持する。
+function normalizedProbabilityFormat(format) {
+  return format === "percent" ? "percent" : "fraction";
+}
+
 function loadProbabilityItems() {
   try {
     const raw = JSON.parse(localStorage.getItem(PROBABILITY_STORAGE_KEY) || "[]");
@@ -1788,7 +1878,12 @@ function loadProbabilityItems() {
       typeof item.id === "string" && typeof item.name === "string" &&
       Array.isArray(item.tokens) && item.tokens.length <= MAX_FORMULA_TOKENS &&
       item.tokens.every(validFormulaToken))
-      .map(item => ({ id: item.id, name: item.name.slice(0, 40), tokens: item.tokens.map(token => ({ ...token })) }));
+      .map(item => ({
+        id: item.id,
+        name: item.name.slice(0, 40),
+        tokens: item.tokens.map(token => ({ ...token })),
+        displayFormat: normalizedProbabilityFormat(item.displayFormat)
+      }));
   } catch (error) {
     console.error("確率項目の読み込みエラー", error);
     return [];
@@ -1798,6 +1893,15 @@ function loadProbabilityItems() {
 let probabilityItems = loadProbabilityItems();
 let probabilityDraft = null;
 let editingProbabilityId = null;
+// 編集開始時の内容と比較し、実際に保存していない変更がある場合だけ警告する。
+let probabilityInitialState = null;
+
+function hasUnsavedProbabilityChanges() {
+  if (!probabilityDraft || !probabilityInitialState) return false;
+  return probabilityNameInput.value !== probabilityInitialState.name ||
+    probabilityDraft.displayFormat !== probabilityInitialState.displayFormat ||
+    JSON.stringify(probabilityDraft.tokens) !== probabilityInitialState.tokens;
+}
 
 function saveProbabilityItems() {
   localStorage.setItem(PROBABILITY_STORAGE_KEY, JSON.stringify(probabilityItems));
@@ -1892,19 +1996,18 @@ function calculateFormula(tokens, syntaxOnly = false) {
   }
 }
 
-// 計算式の値を「1/○○」に換算して表示する。
-function probabilityResult(tokens) {
+// 計算式はそのままに、保存した表示形式（分数または%）で結果を1つだけ表示する。
+function probabilityResult(tokens, displayFormat = "fraction") {
   const result = calculateFormula(tokens);
   if (!result.valid || result.value === null) {
     return { main: "—", note: result.note || "計算できません" };
   }
+  if (normalizedProbabilityFormat(displayFormat) === "percent") {
+    return { main: `${(result.value * 100).toFixed(1)}%`, note: "" };
+  }
   const denominator = 1 / result.value;
   if (!Number.isFinite(denominator)) return { main: "—", note: "計算できません" };
-  const digits = denominator < 0.01 ? 4 : 2;
-  return {
-    main: `1/${denominator.toFixed(digits)}`,
-    note: `${(result.value * 100).toFixed(2)}%`
-  };
+  return { main: `1/${denominator.toFixed(1)}`, note: "" };
 }
 
 function renderProbabilityList() {
@@ -1923,16 +2026,18 @@ function renderProbabilityList() {
     const name = document.createElement("div");
     name.className = "probability-item-name";
     name.textContent = item.name || "名前なし";
+    name.title = name.textContent;
     const result = document.createElement("strong");
     result.className = "probability-item-result";
     const detail = document.createElement("div");
     detail.className = "probability-item-detail";
-    const calculated = probabilityResult(item.tokens);
+    const calculated = probabilityResult(item.tokens, item.displayFormat);
     result.textContent = calculated.main;
     detail.textContent = calculated.note;
     const expr = document.createElement("div");
     expr.className = "probability-item-expression";
     expr.textContent = formulaDescription(item.tokens);
+    expr.title = expr.textContent;
     const actions = document.createElement("div");
     actions.className = "probability-item-actions";
     const edit = document.createElement("button");
@@ -1940,19 +2045,11 @@ function renderProbabilityList() {
     edit.textContent = "編集";
     edit.setAttribute("aria-label", `${item.name || "名前なし"}を編集`);
     edit.addEventListener("click", () => openProbabilityEditor(item.id));
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "probability-delete";
-    remove.textContent = "削除";
-    remove.setAttribute("aria-label", `${item.name || "名前なし"}を削除`);
-    remove.addEventListener("click", function() {
-      if (!window.confirm(`「${item.name || "名前なし"}」を削除しますか？`)) return;
-      probabilityItems = probabilityItems.filter(entry => entry.id !== item.id);
-      saveProbabilityItems();
-      renderProbabilityList();
-    });
-    actions.append(edit, remove);
-    card.append(name, result, expr, detail, actions);
+    actions.appendChild(edit);
+    card.append(name, result, expr);
+    // 成功時の小さな百分率は廃止。入力エラー等の説明だけを残す。
+    if (calculated.note) card.appendChild(detail);
+    card.appendChild(actions);
     probabilityItemsElement.appendChild(card);
   });
 }
@@ -1990,9 +2087,13 @@ function renderFormulaDraft() {
     });
   }
 
-  const calculated = probabilityResult(probabilityDraft.tokens);
+  const calculated = probabilityResult(probabilityDraft.tokens, probabilityDraft.displayFormat);
   probabilityPreviewValue.textContent = calculated.main;
   probabilityPreviewNote.textContent = calculated.note;
+  probabilityPreviewNote.hidden = !calculated.note;
+  probabilityFormatButtons.forEach(button => {
+    button.setAttribute("aria-pressed", String(button.dataset.probabilityFormat === probabilityDraft.displayFormat));
+  });
   const syntax = calculateFormula(probabilityDraft.tokens, true);
   probabilitySaveButton.disabled = !probabilityNameInput.value.trim() || !syntax.valid ||
     probabilityDraft.tokens.some(token => token.type === "counter" && !counterForId(token.id));
@@ -2012,10 +2113,16 @@ function openProbabilityEditor(id = null) {
   const item = probabilityItems.find(entry => entry.id === id);
   editingProbabilityId = item ? item.id : null;
   probabilityDraft = item
-    ? { name: item.name, tokens: item.tokens.map(token => ({ ...token })) }
-    : { name: "", tokens: [] };
+    ? { name: item.name, tokens: item.tokens.map(token => ({ ...token })), displayFormat: normalizedProbabilityFormat(item.displayFormat) }
+    : { name: "", tokens: [], displayFormat: "fraction" };
   probabilityNameInput.value = probabilityDraft.name;
+  probabilityInitialState = {
+    name: probabilityDraft.name,
+    tokens: JSON.stringify(probabilityDraft.tokens),
+    displayFormat: probabilityDraft.displayFormat
+  };
   probabilityEditorTitle.textContent = item ? "確率項目を編集" : "確率項目を作成";
+  probabilityEditorDeleteButton.hidden = !item;
   probabilityListView.hidden = true;
   probabilityEditor.hidden = false;
   probabilityCounterMenu.hidden = true;
@@ -2031,6 +2138,8 @@ function closeProbabilityEditor() {
   probabilityCounterButton.setAttribute("aria-expanded", "false");
   editingProbabilityId = null;
   probabilityDraft = null;
+  probabilityInitialState = null;
+  probabilityEditorDeleteButton.hidden = true;
   renderProbabilityList();
   appContent.scrollTop = 0;
 }
@@ -2042,7 +2151,21 @@ function refreshProbabilityDisplay() {
 
 probabilityAddButton.addEventListener("click", () => openProbabilityEditor());
 probabilityBackButton.addEventListener("click", closeProbabilityEditor);
+probabilityEditorDeleteButton.addEventListener("click", function() {
+  const item = probabilityItems.find(entry => entry.id === editingProbabilityId);
+  if (!item || !window.confirm(`「${item.name || "名前なし"}」を削除しますか？`)) return;
+  probabilityItems = probabilityItems.filter(entry => entry.id !== item.id);
+  saveProbabilityItems();
+  closeProbabilityEditor();
+});
 probabilityNameInput.addEventListener("input", renderFormulaDraft);
+probabilityFormatButtons.forEach(button => {
+  button.addEventListener("click", function() {
+    if (!probabilityDraft) return;
+    probabilityDraft.displayFormat = normalizedProbabilityFormat(button.dataset.probabilityFormat);
+    renderFormulaDraft();
+  });
+});
 
 document.querySelectorAll("[data-formula-op]").forEach(button => {
   button.addEventListener("click", function() {
@@ -2076,7 +2199,11 @@ probabilityCounterButton.addEventListener("click", function() {
     members.forEach((counter, index) => {
       const button = document.createElement("button");
       button.type = "button";
-      button.textContent = counter.name.trim() || `カウンター ${index + 1}`;
+      const label = document.createElement("span");
+      label.className = "counter-select-label";
+      label.textContent = counter.name.trim() || `カウンター ${index + 1}`;
+      button.appendChild(label);
+      button.title = label.textContent;
       button.style.backgroundColor = counter.color;
       button.style.color = getTextColors(counter.color).main;
       button.addEventListener("click", () => appendFormulaToken({ type: "counter", id: counter.id }));
@@ -2111,7 +2238,8 @@ probabilitySaveButton.addEventListener("click", function() {
   const record = {
     id: editingProbabilityId || `prob-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
     name: name.slice(0, 40),
-    tokens: probabilityDraft.tokens.map(token => ({ ...token }))
+    tokens: probabilityDraft.tokens.map(token => ({ ...token })),
+    displayFormat: normalizedProbabilityFormat(probabilityDraft.displayFormat)
   };
   const index = probabilityItems.findIndex(item => item.id === editingProbabilityId);
   if (index >= 0) probabilityItems[index] = record;
