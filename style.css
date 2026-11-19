@@ -87,9 +87,9 @@ h1 {
   /* 列数を固定し、端数の行だけ中央に寄せる */
   /* 4列時の大きさを少し拡大し、どの列数でも同じボタン寸法・間隔を維持する。 */
   --counter-size: 78px;
-  --counter-gap: 6px;
+  --counter-gap: 22px;
   column-gap: var(--counter-gap);
-  row-gap: 48px;
+  row-gap: 44px;
   /* 設定列数だけを1行に収め、端数行も中央に寄せる。 */
   width: 100%;
   max-width: calc(var(--counter-row-width, 78px) + 16px);
@@ -109,12 +109,11 @@ h1 {
 .counter-list[data-columns="5"] { --counter-row-width: calc(var(--counter-size) + var(--counter-size) + var(--counter-size) + var(--counter-size) + var(--counter-size) + var(--counter-gap) + var(--counter-gap) + var(--counter-gap) + var(--counter-gap)); }
 .counter-list[data-columns="6"] { --counter-row-width: calc(var(--counter-size) + var(--counter-size) + var(--counter-size) + var(--counter-size) + var(--counter-size) + var(--counter-size) + var(--counter-gap) + var(--counter-gap) + var(--counter-gap) + var(--counter-gap) + var(--counter-gap)); }
 
-/* 数字はボタンの上に置くため、その表示高さを確保する。 */
+/* 数値はボタンの上・外側に独立表示する。 */
 .counter-item {
   flex: 0 0 var(--counter-size);
   width: var(--counter-size);
   min-width: 0;
-  padding-top: 64px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -141,14 +140,17 @@ h1 {
   text-align: center;
 }
 
-/* 小役名は半角・全角・長い名前でも1行分の高さに固定する。 */
+/* 4列時の文字サイズをどの列数でも使い、名前を「…」で省略しない。 */
 .counter-item .title {
   min-width: 0;
-  height: 1.4em;
+  font-size: 14px;
+  min-height: 1.4em;
+  height: auto;
   line-height: 1.4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
   flex-shrink: 0;
 }
 
@@ -163,7 +165,7 @@ h1 {
   height: auto;
   padding: 0;
 
-  background: #202b3d;
+  background: #647f91;
   color: white;
 
   border: none;
@@ -197,13 +199,12 @@ h1 {
   transform: scale(0.98);
 }
 
-/* カウント値はボタンの上に独立表示。文字色は小役の背景色に連動しない。 */
-.counter-item .counter .number {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 0;
+/* 数値は独立した表示要素。ボタンの上にあるが、タップの当たり判定は持たない。 */
+.counter-item > .number {
   width: 100%;
-  height: 56px;
+  height: 64px;
+  padding-bottom: 6px;
+  flex-shrink: 0;
   display: flex;
   justify-content: center;
   align-items: flex-end;
@@ -212,6 +213,7 @@ h1 {
   line-height: 1.05;
   text-align: center;
   white-space: nowrap;
+  pointer-events: none;
   -webkit-user-select: none;
   user-select: none;
 }
@@ -638,17 +640,6 @@ h1 {
 
 /* ボタンの見た目はtheme.cssのtheme-toggle / theme-optionを共用 */
 
-.counter-list[data-columns="3"] .title,
-.counter-list[data-columns="4"] .title {
-  font-size: 14px;
-  overflow-wrap: anywhere;
-}
-.counter-list[data-columns="5"] .title,
-.counter-list[data-columns="6"] .title {
-  font-size: 11px;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-}
 
 /* =====================================
    スマホ対応
@@ -665,11 +656,11 @@ h1 {
   /* スマホでも選択した1～6列を維持する */
   .counter-list {
     /* スマホの4列で従来の最大63pxから68pxへ。狭い端末だけは収まる大きさに調整。 */
-    --counter-size: min(68px, calc(25vw - 21px));
-    row-gap: 40px;
+    --counter-size: min(68px, calc((100cqi - 18px - 3 * var(--counter-gap)) / 4));
+    row-gap: 36px;
   }
-  .counter-list[data-columns="3"] .title,
-  .counter-list[data-columns="4"] .title { font-size: 12px; }
+  /* 4列時の文字サイズを列数に関係なく維持。 */
+  .counter-item .title { font-size: 12px; }
 
   /* スマホではヘッダーのボタンを少し小さくする */
   .app-header {
@@ -1241,12 +1232,19 @@ button * {
 .count-history-table th:nth-child(4), .count-history-table td:nth-child(4) { width: 35%; }
 .count-history-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .count-history-name {
-  min-width: 42px;
-  /* 長い小役名で折り返すと行数が変わるため、1行に収める。 */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 0;
+  /* 長い小役名も省略せず、セル内で折り返してすべて表示する。 */
+  font-size: 11px;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
+/* 長い名前は文字を少し縮めるが、内容は省略せず行の高さを伸ばす。 */
+.count-history-name.count-history-name-long { font-size: 10px; }
+.count-history-name.count-history-name-very-long { font-size: 9px; }
 .count-history-operation { font-weight: bold; white-space: nowrap; }
 .count-history-values { font-variant-numeric: tabular-nums; font-weight: bold; white-space: nowrap; }
 /* 見出しも明細も同じ3列構造にし、見出しと数値・矢印を一致させる。 */
@@ -1563,14 +1561,16 @@ button * {
 /* カウンターグループだけ角丸カードで囲む（設定・履歴は変更しない）。 */
 .common-counter-area,
 .mode-counter-area {
+  /* 実際のカード内幅を基準に、小さな端末でも指定列数を維持する。 */
+  container-type: inline-size;
   background: var(--surface, #fff);
   border: 1px solid var(--border, #ddd);
   border-radius: 24px;
   padding: 18px 12px 20px;
 }
-.mode-counter-area:has(.counter-list:empty) { display: none; }
+.mode-counter-area:has(.counter-list:empty):has(.counter-mode-tabs[hidden]) { display: none; }
 .common-counter-area { margin-bottom: 20px; }
-.common-counter-area:not([hidden]):has(+ .counter-mode-tabs:not([hidden])) {
+.common-counter-area:not([hidden]):has(+ .mode-counter-area > .counter-mode-tabs:not([hidden])) {
   margin-bottom: 60px;
 }
 .counter-area-heading { font-size: 15px; margin: 0 0 14px; color: var(--text, #222); }
@@ -1583,7 +1583,7 @@ button * {
       cursor: pointer; }
 .counter-mode-tab.active { border-color: var(--text,#333); font-weight: bold; background: var(--surface,#fff); }
 /* フォントはiPhoneの標準書体で、数字だけ太さ500にする */
-.counter .number { font-weight: 500; font-variant-numeric: tabular-nums; }
+.counter-item > .number { font-weight: 700; font-variant-numeric: tabular-nums; }
 
 /* 共通カウンターは独立した枠、モードは一つの枠で展開 */
 .settings-accordion { margin-bottom: 20px; }
@@ -1617,7 +1617,7 @@ button * {
   background: var(--surface-soft,#f7f7f7); color: var(--text,#222); font: inherit; font-size: 13px;
   cursor: pointer; white-space: nowrap; }
 .font-size-option.active { border-color: var(--text,#333); background: var(--surface,#fff); font-weight: bold; }
-.number-size-preview-number { font-family: inherit; font-weight: 500; }
+.number-size-preview-number { font-family: inherit; font-weight: 700; }
 @media(max-width: 700px) { .font-size-options { width: 100%; } }
 /* 設定判別の小役メニュー：共通・各モード別に整理 */
 .probability-counter-menu { display: flex; flex-direction: column; gap: 14px; }
@@ -1927,11 +1927,15 @@ button * {
 .landscape-mode .count-history-table { font-size: 11px; }
 .landscape-mode .count-history-table th,
 .landscape-mode .count-history-table td { padding: 6px 3px; }
-.landscape-mode .counter-list { row-gap: 20px; }
+.landscape-mode .counter-list {
+  /* 回転後の表示幅に合わせ、6列でも折り返さない範囲で68pxを維持。 */
+  --counter-size: min(68px, calc((100cqi - 18px - 5 * var(--counter-gap)) / 6));
+  row-gap: 18px;
+}
 .landscape-mode .total-games-row { margin: 8px 0 14px; }
 .landscape-mode .count-mode-row { margin-bottom: 10px; }
 .landscape-mode .common-counter-area { margin-bottom: 12px; }
-.landscape-mode .common-counter-area:not([hidden]):has(+ .counter-mode-tabs:not([hidden])) { margin-bottom: 22px; }
+.landscape-mode .common-counter-area:not([hidden]):has(+ .mode-counter-area > .counter-mode-tabs:not([hidden])) { margin-bottom: 22px; }
 .landscape-mode .counter-mode-tabs { margin-top: 9px; margin-bottom: 12px; }
 .landscape-mode .memo-input { min-height: 175px; }
 /* native dialogは最上位レイヤーなので本体と別に回転させる */
@@ -2156,10 +2160,9 @@ html.landscape-mode body {
   user-select: none;
 }
 
-/* iPhone / iPad の縦表示では、ソフトキーボードやブラウザーUIで変わる
-   実際の可視領域にアプリ全体（上部ヘッダー・中央・下部タブ）を合わせる。
-   100% はレイアウト用viewport基準となって下部が見切れる場合があるため使わない。
-   初期値は従来の100dvh。JSが可視領域の実測に成功した場合のみ適用する。 */
+/* iPhone / iPad の縦表示では、通常時だけ可視領域へアプリ枠を合わせる。
+   キーボード表示中は直前の枠サイズを保持して、下部タブがキーボード上に
+   持ち上がらないようにする（キーボードに隠れるのは正常な挙動）。 */
 html.ios-viewport-managed:not(.landscape-mode) .container {
   position: fixed;
   top: var(--app-visual-top, 0px);
@@ -2205,4 +2208,206 @@ html.ios-viewport-managed:not(.landscape-mode) .container {
   .setting-number { flex-basis: 21px; min-width: 21px; }
   .mode-settings-row { gap: 7px; }
   .mode-rename-button { padding: 8px 6px; }
+}
+
+/* モード切替はモード専用カウンターの角丸カード内に配置する。 */
+.mode-counter-area > .counter-mode-tabs { margin-top: 0; margin-bottom: 18px; }
+.landscape-mode .mode-counter-area > .counter-mode-tabs { margin-top: 0; margin-bottom: 12px; }
+
+/* =====================================================
+   v38: 区切り線・並び替え・色選択・モード詳細・入力補助
+===================================================== */
+/* 項目名と内容の間だけ、テーマに追従する区切り線を入れる。 */
+.common-counter-area > .counter-area-heading {
+  border-bottom: 1px solid var(--border, #ddd);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+.counter-settings-heading,
+.mode-settings-heading,
+.probability-list-heading {
+  border-bottom: 1px solid var(--border, #ddd);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+.settings-accordion-toggle[aria-expanded="true"] {
+  border-bottom: 1px solid var(--border, #ddd);
+  border-radius: 12px 12px 0 0;
+}
+/* モードの詳細画面は小役見出し内の区切り線を共有する。 */
+
+/* 確率項目にも小役・モードと同じ選択＋共通上下ボタンを用意。 */
+.probability-list-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: var(--text, #222);
+  font-size: 15px;
+  font-weight: bold;
+}
+#probability-reorder-controls { margin-left: auto; }
+.probability-item-name-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+.probability-item-name-row .probability-item-name { flex: 1; min-width: 0; }
+.probability-item.selected { border-color: var(--text, #222); }
+/* 手動横表示の計算項目一覧だけ2列で表示。編集画面は変更しない。 */
+.landscape-mode #probability-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* 7つの色系統＋グレー1列、7段階の明暗。横スクロール不要。 */
+.color-matrix {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 5px;
+  padding: 3px 1px 5px;
+  overflow: visible;
+}
+.matrix-swatch { min-height: 26px; }
+@media (max-width: 400px) { .color-matrix { gap: 4px; } }
+/* 操作した行と画面の空き位置に応じて上側にも表示できる。 */
+.color-picker-panel.open-up {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+/* モード一覧では「編集」ボタンと長押し削除を使用しない。 */
+.settings-mode-detail-header { gap: 8px; }
+.mode-detail-name-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.mode-detail-name-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 40px;
+  padding: 6px 8px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  background: var(--input-bg, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+.settings-mode-delete {
+  flex: 0 0 auto;
+  height: 40px;
+  padding: 7px 10px;
+  border: 1px solid #bf4e4e;
+  border-radius: 8px;
+  background: transparent;
+  color: #bf4e4e;
+  font: inherit;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
+/* 小役名：編集欄の右側の×で一括消去。 */
+.setting-name-edit {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 46px;
+  align-items: center;
+}
+.setting-name-edit .setting-input {
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  padding-right: 30px;
+}
+.setting-name-clear {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-soft, #eee);
+  color: var(--muted, #666);
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  line-height: 1;
+  font-size: 19px;
+  cursor: pointer;
+}
+.setting-name-edit:focus-within .setting-name-clear:not([hidden]) { display: grid; }
+
+/* カラーパネルの開いている行を前面に出して隣の行に隠れないようにする。 */
+.setting-item:has(.color-picker-panel:not([hidden])) {
+  position: relative;
+  z-index: 30;
+}
+
+
+/* =====================================
+   設定判別：計算式への数値の直接入力
+===================================== */
+.probability-number-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  min-width: 0;
+}
+.probability-number-form label {
+  flex: 0 0 auto;
+  color: var(--text, #222);
+  font-size: 14px;
+  font-weight: 700;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.probability-number-form input {
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  background: var(--input-bg, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 16px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.probability-number-form button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 7px 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.probability-number-error {
+  margin: 5px 0 0;
+  color: #d9534f;
+  font-size: 13px;
 }

@@ -9,7 +9,7 @@ const MIN_COUNTERS = 1;
 // 小役ごとのカウント値は3桁（0〜999）まで。総ゲーム数には適用しない。
 const MAX_COUNT_VALUE = 999;
 
-const DEFAULT_COUNTER_COLOR = "#202B3D";
+const DEFAULT_COUNTER_COLOR = "#647F91"; // 明暗どちらの画面でも背景と区別しやすい中間色
 
 const STORAGE_KEY = "counters";
 const OLD_STORAGE_KEY = "counterCount";
@@ -240,6 +240,7 @@ const modeSettingsList = document.getElementById("mode-settings-list");
 const settingsOverview = document.getElementById("settings-overview");
 const settingsModeDetail = document.getElementById("settings-mode-detail");
 const settingsModeDetailTitle = document.getElementById("settings-mode-detail-title");
+const settingsModeDelete = document.getElementById("settings-mode-delete");
 const settingsModeDetailContent = document.getElementById("settings-mode-detail-content");
 const settingsModeBack = document.getElementById("settings-mode-back");
 const addModeButton = document.getElementById("add-mode");
@@ -382,6 +383,10 @@ function createHistoryRow(entry, undone, latestApplied) {
   const nameCell = document.createElement("td");
   nameCell.className = "count-history-name";
   nameCell.textContent = entry.counterName;
+  // 長い小役名は縮小し、折り返して全文を見せる（省略表示はしない）。
+  const nameLength = Array.from(entry.counterName).length;
+  if (nameLength > 22) nameCell.classList.add("count-history-name-very-long");
+  else if (nameLength > 12) nameCell.classList.add("count-history-name-long");
 
   const operationCell = document.createElement("td");
   operationCell.className = "count-history-operation";
@@ -465,7 +470,25 @@ function renderCountHistory() {
 // カウント操作や履歴の削除後は、最新の行を表示するため一覧だけを先頭へ戻す。
 // ページ全体や履歴ヘッダーはスクロールさせない。
 function scrollHistoryToTop() {
+  countHistoryScrollSpace.style.height = "0px";
   countHistoryScrollArea.scrollTop = 0;
+}
+
+// Undo/Redoでは履歴の行を移動・複製せず、青い最新有効行が見出し直下に
+// 来るよう履歴一覧だけをスクロールする。ページ全体は動かさない。
+function scrollHistoryToLatestApplied() {
+  if (document.documentElement.classList.contains("landscape-mode")) return;
+  const activeRow = countHistoryList.querySelector("tr.count-history-latest");
+  if (!activeRow) {
+    scrollHistoryToTop();
+    return;
+  }
+  // 青い行が最後でも見出し直下までスクロールできるよう、一覧の末尾に余白を確保。
+  const extra = Math.max(0, countHistoryScrollArea.clientHeight - activeRow.getBoundingClientRect().height);
+  countHistoryScrollSpace.style.height = `${Math.ceil(extra)}px`;
+  const top = countHistoryScrollArea.getBoundingClientRect().top;
+  const rowTop = activeRow.getBoundingClientRect().top;
+  countHistoryScrollArea.scrollTop += rowTop - top;
 }
 
 countHistoryMore.addEventListener("click", function() {
@@ -512,10 +535,9 @@ function dropDeletedCounterHistory(id) {
 }
 
 function stepCountHistory(isRedo) {
-  // Undo/Redo後も画面と履歴の現在位置を維持する。
-  // 対象の小役が別モードなら、表示モードだけを自動で切り替える。
+  // 対象の小役が別モードならモードを切り替える。画面全体の位置は維持し、
+  // 履歴一覧だけ最新有効行（青い行）へスクロールする。
   const mainScrollTop = appContent.scrollTop;
-  const historyScrollTop = countHistoryScrollArea.scrollTop;
   const from = isRedo ? countHistory.future : countHistory.past;
   const to = isRedo ? countHistory.past : countHistory.future;
   const entry = from[from.length - 1];
@@ -525,7 +547,7 @@ function stepCountHistory(isRedo) {
     from.pop();
     saveCountHistory();
     renderCountHistory();
-    countHistoryScrollArea.scrollTop = historyScrollTop;
+    scrollHistoryToLatestApplied();
     appContent.scrollTop = mainScrollTop;
     return;
   }
@@ -545,8 +567,7 @@ function stepCountHistory(isRedo) {
   // 別モードへの切り替え時だけリスト全体を再描画する。
   if (switchedMode || !refreshVisibleCounterNumber(target)) renderCounters();
   renderCountHistory();
-  // Undo/Redoでは履歴や小役へ自動スクロールせず、操作前の位置を保つ。
-  countHistoryScrollArea.scrollTop = historyScrollTop;
+  scrollHistoryToLatestApplied();
   appContent.scrollTop = mainScrollTop;
 }
 
@@ -722,10 +743,10 @@ const LONG_PRESS_MOVE_LIMIT = 12;
 // カウンターの表示更新をDOM作成から分離する。
 // 既存ボタンを維持することで、連続タップ時のフォーカスや長押し状態を壊さない。
 function updateCounterNumber(counterData, button, titleText) {
-  const number = button.querySelector(".number");
+  const number = button.parentElement?.querySelector(":scope > .number");
   if (!number) return;
   number.textContent = counterData.count;
-  // 数字が長い場合は、指定サイズを上限にしてボタン内へ収める。
+  // 4列時と同じボタン幅を基準にし、列数に関係なく選択中の文字サイズを維持する。
   const width = button.getBoundingClientRect().width || 150;
   const digits = String(counterData.count).length;
   const safeSize = Math.max(8, Math.floor((width - 12) / Math.max(digits * 0.62, 1)));
@@ -777,7 +798,7 @@ function renderCounterGroup(targetList, groupCounters) {
     const title = document.createElement("div");
     title.className = "title";
     title.textContent = counterData.name.trim() || `カウンター ${index + 1}`;
-    title.title = title.textContent; // 省略表示でもPCでは名前全体を確認できる。
+    title.title = title.textContent; // 名前は省略せず、長い場合は折り返して表示する。
 
     // 数字を大きく表示するカウントボタン
     const counter = document.createElement("button");
@@ -787,9 +808,10 @@ function renderCounterGroup(targetList, groupCounters) {
     counter.style.color = getTextColors(counterData.color).main;
     counter.title = "長押しで数値を編集・リセット";
 
+    // 数値はカウントボタンの外側に置き、数値部分をタップしても加減算しない。
     const number = document.createElement("div");
     number.className = "number";
-    counter.appendChild(number);
+    number.setAttribute("aria-hidden", "true");
 
     // 長押しを通常タップと区別する。指を動かしてスクロールしたときは取り消す。
     let holdTimer = null;
@@ -865,7 +887,7 @@ function renderCounterGroup(targetList, groupCounters) {
       changeCount(counterData, before + delta, delta === 1 ? "+1" : "-1");
     });
 
-    item.append(counter, title);
+    item.append(number, counter, title);
     targetList.appendChild(item);
     updateCounterNumber(counterData, counter, title.textContent);
   });
@@ -1002,6 +1024,29 @@ document.addEventListener("pointerdown", function(event) {
   }
 });
 
+
+// 色変更ボタンの位置に応じて、画面からはみ出しにくい側へ展開する。
+function positionColorPicker(panel, item) {
+  if (!panel || panel.hidden || !item.isConnected) return;
+  const rowRect = item.getBoundingClientRect();
+  const scrollRect = appContent.getBoundingClientRect();
+  const viewport = window.visualViewport;
+  const screenTop = viewport ? viewport.offsetTop : 0;
+  const screenBottom = screenTop + (viewport ? viewport.height : window.innerHeight);
+  const clipTop = Math.max(scrollRect.top, screenTop) + 8;
+  const clipBottom = Math.min(scrollRect.bottom, screenBottom) - 8;
+  const above = Math.max(0, rowRect.top - clipTop - 8);
+  const below = Math.max(0, clipBottom - rowRect.bottom - 8);
+  // 余裕があるときは下に、足りないときは広い方向に表示する。
+  const wantsHeight = Math.min(350, panel.scrollHeight || 350);
+  const up = below < wantsHeight && above > below;
+  panel.classList.toggle("open-up", up);
+  panel.style.maxHeight = `${Math.max(90, Math.min(470, up ? above : below))}px`;
+}
+appContent.addEventListener("scroll", () => {
+  const panel = activeColorPickerSection?.querySelector(".color-picker-panel");
+  if (panel) positionColorPicker(panel, panel.closest(".setting-item"));
+}, { passive: true });
 
 // ===================================
 // 設定画面
@@ -1161,6 +1206,7 @@ function createCounterEditor(groupId) {
       activeColorPickerSection = panel.hidden
         ? null
         : colorSection;
+      if (!panel.hidden) requestAnimationFrame(() => positionColorPicker(panel, item));
     });
 
 
@@ -1176,7 +1222,7 @@ function createCounterEditor(groupId) {
     hexInput.className = "color-hex";
     hexInput.maxLength = 7;
     hexInput.value = counterData.color;
-    hexInput.placeholder = "#202B3D";
+    hexInput.placeholder = DEFAULT_COUNTER_COLOR;
 
     hexInput.setAttribute(
       "aria-label",
@@ -1235,70 +1281,26 @@ function createCounterEditor(groupId) {
     }
 
 
-    // ===================================
-    // 15列 × 6行のマトリクス
-    // ===================================
-
-    const hues = Array.from(
-      { length: 14 },
-      (_, i) => i * 360 / 14
-    );
-
-    const lights = [
-      25, 35, 45, 55, 65, 75
-    ];
-
-    lights.forEach(light => {
-
-      // 通常カラー14列
-      hues.forEach(hue => {
-
-        const color = hslToHex(hue, 100, light);
-
+    // 7色相＋グレースケールの8列・7段階。
+    // 色系統は縦一列で揃え、上から明るい色→暗い色にする。
+    const hues = [0, 28, 53, 120, 183, 225, 282];
+    const lights = [76, 67, 58, 49, 40, 31, 22];
+    const grayLights = [100, 83, 66, 50, 34, 17, 0];
+    lights.forEach((light, rowIndex) => {
+      const colors = hues.map(hue => hslToHex(hue, 85, light));
+      colors.push(hslToHex(0, 0, grayLights[rowIndex]));
+      colors.forEach((color, columnIndex) => {
         const swatch = document.createElement("button");
-
         swatch.type = "button";
         swatch.className = "matrix-swatch";
         swatch.style.backgroundColor = color;
         swatch.dataset.color = color;
         swatch.title = color;
-
-        swatch.setAttribute(
-          "aria-label",
-          color
-        );
-
-        swatch.addEventListener("click", function() {
-          applyColor(color);
-        });
-
+        swatch.setAttribute("aria-label", columnIndex === 7
+          ? `無彩色 ${grayLights[rowIndex]}% ${color}` : color);
+        swatch.addEventListener("click", () => applyColor(color));
         matrix.appendChild(swatch);
       });
-
-
-      // 白黒・グレー系1列
-      // 通常カラーと同じHSL明度を使用
-      const grayColor = hslToHex(0, 0, light);
-
-      const graySwatch = document.createElement("button");
-
-      graySwatch.type = "button";
-      graySwatch.className = "matrix-swatch";
-      graySwatch.style.backgroundColor = grayColor;
-      graySwatch.dataset.color = grayColor;
-      graySwatch.title = grayColor;
-
-      graySwatch.setAttribute(
-        "aria-label",
-        `グレー ${light}%`
-      );
-
-      graySwatch.addEventListener("click", function() {
-        applyColor(grayColor);
-      });
-
-      matrix.appendChild(graySwatch);
-
     });
 
 
@@ -1354,7 +1356,25 @@ function createCounterEditor(groupId) {
     orderNumber.className = "setting-number";
     orderNumber.textContent = `${index + 1}.`;
 
-    nameRow.append(selector, orderNumber, input, colorSection);
+    const nameEdit = document.createElement("div");
+    nameEdit.className = "setting-name-edit";
+    const clearName = document.createElement("button");
+    clearName.type = "button";
+    clearName.className = "setting-name-clear";
+    clearName.textContent = "×";
+    clearName.setAttribute("aria-label", "小役名をすべて消去");
+    function updateClearName() { clearName.hidden = !input.value; }
+    input.addEventListener("input", updateClearName);
+    clearName.addEventListener("pointerdown", event => event.preventDefault());
+    clearName.addEventListener("click", () => {
+      input.value = "";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.focus({ preventScroll: true });
+      updateClearName();
+    });
+    updateClearName();
+    nameEdit.append(input, clearName);
+    nameRow.append(selector, orderNumber, nameEdit, colorSection);
 
     item.append(nameRow);
     installRowActions(item, () => deleteCounter(counterData.id), `小役「${counterData.name || "名前なし"}」`);
@@ -1398,7 +1418,7 @@ function renderSettings() {
   settingsModeDetail.hidden = !editingModeId;
   settingsModeDetailContent.replaceChildren();
   if (editingModeId) {
-    settingsModeDetailTitle.textContent = editingMode.name.trim() || "名前なし";
+    settingsModeDetailTitle.value = editingMode.name;
     settingsModeDetailContent.appendChild(createCounterEditor(editingModeId));
   }
   // モードがなければ「共通」という区別が不要なので通常の名称にする。
@@ -1477,9 +1497,19 @@ function installRowActions(row, onDelete, label) {
     event.preventDefault();
     openContext();
   });
+  // 未編集中の名前を長押ししても編集キーボードを開かない。
+  // 短いタップのみ、pointerup上で明示的に入力欄をフォーカスする。
+  const nameInput = row.querySelector(".setting-name-row .setting-input");
+  if (nameInput) {
+    nameInput.addEventListener("touchstart", event => {
+      if (document.activeElement !== nameInput && event.cancelable) event.preventDefault();
+    }, { passive: false });
+  }
+  let tapNameInput = null;
   row.addEventListener("pointerdown", event => {
     if (event.pointerType !== "touch") return;
-    if (event.target.closest(".gesture-context-menu,.always-move-controls,.reorder-select,.color-open-button,.color-picker-panel")) return;
+    if (event.target.closest(".gesture-context-menu,.always-move-controls,.reorder-select,.color-open-button,.color-picker-panel,.setting-name-clear")) return;
+    tapNameInput = event.target.closest(".setting-name-row .setting-input");
     startX = event.clientX;
     startY = event.clientY;
     triggered = false;
@@ -1496,15 +1526,24 @@ function installRowActions(row, onDelete, label) {
     if (Math.abs(event.clientX - startX) > 12 || Math.abs(event.clientY - startY) > 12) {
       clearTimeout(pressTimer);
       pressed = false;
+      tapNameInput = null;
     }
   });
   function finish() {
     pressed = false;
     clearTimeout(pressTimer);
   }
-  row.addEventListener("pointerup", finish);
-  row.addEventListener("pointercancel", finish);
-  row.addEventListener("pointerleave", event => { if (event.pointerType === "touch") finish(); });
+  row.addEventListener("pointerup", event => {
+    const shouldFocus = event.pointerType === "touch" && tapNameInput && !triggered && pressed;
+    const targetInput = tapNameInput;
+    tapNameInput = null;
+    finish();
+    if (shouldFocus && targetInput) targetInput.focus({ preventScroll: true });
+  });
+  row.addEventListener("pointercancel", () => { tapNameInput = null; finish(); });
+  row.addEventListener("pointerleave", event => {
+    if (event.pointerType === "touch") { tapNameInput = null; finish(); }
+  });
   row.addEventListener("click", event => {
     if (triggered) { event.preventDefault(); event.stopPropagation(); triggered = false; }
   }, true);
@@ -1605,38 +1644,24 @@ function renderModeSettings() {
       appContent.scrollTop = 0;
       settingsModeBack.focus({ preventScroll: true });
     });
-    const rename = document.createElement("button");
-    rename.type = "button";
-    rename.className = "mode-rename-button";
-    rename.textContent = "編集";
-    rename.setAttribute("aria-label", `${mode.name.trim() || "名前なし"}のモード名を編集`);
-    rename.addEventListener("click", () => {
-      const input = document.createElement("input");
-      input.type = "text";
-      input.className = "setting-input mode-name-input";
-      input.maxLength = 30;
-      input.value = mode.name;
-      input.setAttribute("aria-label", "モード名");
-      input.addEventListener("input", () => {
-        mode.name = input.value;
-        saveModes();
-        renderCounterModeTabs();
-        refreshProbabilityDisplay();
-      });
-      input.addEventListener("keydown", event => { if (event.key === "Enter") input.blur(); });
-      input.addEventListener("blur", () => renderModeSettings(), { once: true });
-      row.replaceChild(input, toggle);
-      rename.hidden = true;
-      input.focus();
-      input.select();
-    });
-    row.append(selector, toggle, rename);
+    row.append(selector, toggle);
     item.appendChild(row);
-    installRowActions(item, () => deleteMode(mode.id), `モード「${mode.name || "名前なし"}」`);
     modeSettingsList.appendChild(item);
   });
   updateModeReorderSelection();
 }
+
+settingsModeDetailTitle.addEventListener("input", () => {
+  const mode = modes.find(entry => entry.id === editingModeId);
+  if (!mode) return;
+  mode.name = settingsModeDetailTitle.value.slice(0, 30);
+  saveModes();
+  renderCounterModeTabs();
+  refreshProbabilityDisplay();
+});
+settingsModeDelete.addEventListener("click", () => {
+  if (editingModeId) deleteMode(editingModeId);
+});
 
 settingsModeBack.addEventListener("click", function() {
   const previousModeId = editingModeId;
@@ -1852,6 +1877,9 @@ const probabilityFormulaElement = document.getElementById("probability-formula")
 const probabilityGamesButton = document.getElementById("probability-games");
 const probabilityCounterButton = document.getElementById("probability-counter");
 const probabilityCounterMenu = document.getElementById("probability-counter-menu");
+const probabilityNumberForm = document.getElementById("probability-number-form");
+const probabilityNumberInput = document.getElementById("probability-number-input");
+const probabilityNumberError = document.getElementById("probability-number-error");
 const probabilityUndoButton = document.getElementById("probability-undo");
 const probabilityClearButton = document.getElementById("probability-clear");
 const probabilityPreviewValue = document.getElementById("probability-preview-value");
@@ -1862,6 +1890,8 @@ function validFormulaToken(token) {
   if (!token || typeof token !== "object") return false;
   if (token.type === "games") return true;
   if (token.type === "counter") return typeof token.id === "string" && token.id.length <= 100;
+  if (token.type === "number") return typeof token.value === "number" &&
+    Number.isFinite(token.value) && Math.abs(token.value) <= 1000000000;
   return token.type === "op" && ["+", "-", "*", "/", "(", ")"].includes(token.value);
 }
 
@@ -1891,6 +1921,34 @@ function loadProbabilityItems() {
 }
 
 let probabilityItems = loadProbabilityItems();
+let reorderSelectedProbabilityId = null;
+const probabilityReorderControls = createMoveControls(false, false,
+  () => moveSelectedProbability(-1), () => moveSelectedProbability(1), "選択した計算項目");
+document.getElementById("probability-reorder-controls").appendChild(probabilityReorderControls);
+function updateProbabilityReorderSelection() {
+  const index = probabilityItems.findIndex(item => item.id === reorderSelectedProbabilityId);
+  const [up, down] = probabilityReorderControls.querySelectorAll("button");
+  up.disabled = index <= 0;
+  down.disabled = index < 0 || index >= probabilityItems.length - 1;
+  probabilityItemsElement.querySelectorAll(".probability-item").forEach(card => {
+    const selected = card.dataset.probabilityId === reorderSelectedProbabilityId;
+    card.classList.toggle("selected", selected);
+    const radio = card.querySelector(".reorder-select");
+    if (radio) radio.checked = selected;
+  });
+}
+function moveSelectedProbability(delta) {
+  const index = probabilityItems.findIndex(item => item.id === reorderSelectedProbabilityId);
+  const next = index + delta;
+  if (index < 0 || next < 0 || next >= probabilityItems.length) return;
+  [probabilityItems[index], probabilityItems[next]] = [probabilityItems[next], probabilityItems[index]];
+  const current = probabilityItemsElement.children[index];
+  const neighbor = probabilityItemsElement.children[next];
+  if (delta < 0) probabilityItemsElement.insertBefore(current, neighbor);
+  else probabilityItemsElement.insertBefore(neighbor, current);
+  saveProbabilityItems();
+  updateProbabilityReorderSelection();
+}
 let probabilityDraft = null;
 let editingProbabilityId = null;
 // 編集開始時の内容と比較し、実際に保存していない変更がある場合だけ警告する。
@@ -1900,7 +1958,8 @@ function hasUnsavedProbabilityChanges() {
   if (!probabilityDraft || !probabilityInitialState) return false;
   return probabilityNameInput.value !== probabilityInitialState.name ||
     probabilityDraft.displayFormat !== probabilityInitialState.displayFormat ||
-    JSON.stringify(probabilityDraft.tokens) !== probabilityInitialState.tokens;
+    JSON.stringify(probabilityDraft.tokens) !== probabilityInitialState.tokens ||
+    probabilityNumberInput.value.trim() !== "";
 }
 
 function saveProbabilityItems() {
@@ -1912,6 +1971,7 @@ function counterForId(id) {
 }
 
 function tokenLabel(token) {
+  if (token.type === "number") return String(token.value);
   if (token.type === "games") return "総ゲーム数";
   if (token.type === "counter") {
     const counter = counterForId(token.id);
@@ -1946,6 +2006,7 @@ function calculateFormula(tokens, syntaxOnly = false) {
       }
       return value;
     }
+    if (token.type === "number") return token.value;
     if (token.type === "games") {
       const games = syntaxOnly ? 1 : readTotalGames();
       if (games === null) missing = true;
@@ -1956,7 +2017,7 @@ function calculateFormula(tokens, syntaxOnly = false) {
       if (!counter && !syntaxOnly) missingCounter = true;
       return syntaxOnly ? 1 : (counter?.count ?? 0);
     }
-    throw new Error("小役・総ゲーム数・括弧を入力してください");
+    throw new Error("小役・総ゲーム数・数値・括弧を入力してください");
   }
 
   function term() {
@@ -2011,18 +2072,31 @@ function probabilityResult(tokens, displayFormat = "fraction") {
 }
 
 function renderProbabilityList() {
+  if (!probabilityItems.some(item => item.id === reorderSelectedProbabilityId)) reorderSelectedProbabilityId = null;
   probabilityItemsElement.replaceChildren();
 
   if (probabilityItems.length === 0) {
     const empty = document.createElement("p");
     empty.className = "probability-empty";
-    empty.textContent = "まだ確率項目がありません。「＋ 確率項目を追加」から作成できます。";
+    empty.textContent = "まだ計算項目がありません。「＋ 計算項目を追加」から作成できます。";
     probabilityItemsElement.appendChild(empty);
   }
 
   probabilityItems.forEach(item => {
     const card = document.createElement("div");
     card.className = "probability-item";
+    card.dataset.probabilityId = item.id;
+    const selector = document.createElement("input");
+    selector.type = "radio";
+    selector.className = "reorder-select";
+    selector.name = "probability-reorder";
+    selector.value = item.id;
+    selector.checked = reorderSelectedProbabilityId === item.id;
+    selector.setAttribute("aria-label", `${item.name || "名前なし"}を並び替え対象に選択`);
+    selector.addEventListener("change", () => {
+      reorderSelectedProbabilityId = item.id;
+      updateProbabilityReorderSelection();
+    });
     const name = document.createElement("div");
     name.className = "probability-item-name";
     name.textContent = item.name || "名前なし";
@@ -2046,12 +2120,16 @@ function renderProbabilityList() {
     edit.setAttribute("aria-label", `${item.name || "名前なし"}を編集`);
     edit.addEventListener("click", () => openProbabilityEditor(item.id));
     actions.appendChild(edit);
-    card.append(name, result, expr);
+    const nameRow = document.createElement("div");
+    nameRow.className = "probability-item-name-row";
+    nameRow.append(selector, name);
+    card.append(nameRow, result, expr);
     // 成功時の小さな百分率は廃止。入力エラー等の説明だけを残す。
     if (calculated.note) card.appendChild(detail);
     card.appendChild(actions);
     probabilityItemsElement.appendChild(card);
   });
+  updateProbabilityReorderSelection();
 }
 
 function renderFormulaDraft() {
@@ -2110,6 +2188,9 @@ function appendFormulaToken(token) {
 }
 
 function openProbabilityEditor(id = null) {
+  probabilityNumberForm.reset();
+  probabilityNumberError.hidden = true;
+  probabilityNumberError.textContent = "";
   const item = probabilityItems.find(entry => entry.id === id);
   editingProbabilityId = item ? item.id : null;
   probabilityDraft = item
@@ -2121,7 +2202,7 @@ function openProbabilityEditor(id = null) {
     tokens: JSON.stringify(probabilityDraft.tokens),
     displayFormat: probabilityDraft.displayFormat
   };
-  probabilityEditorTitle.textContent = item ? "確率項目を編集" : "確率項目を作成";
+  probabilityEditorTitle.textContent = item ? "計算項目を編集" : "計算項目を作成";
   probabilityEditorDeleteButton.hidden = !item;
   probabilityListView.hidden = true;
   probabilityEditor.hidden = false;
@@ -2132,6 +2213,9 @@ function openProbabilityEditor(id = null) {
 }
 
 function closeProbabilityEditor() {
+  probabilityNumberForm.reset();
+  probabilityNumberError.hidden = true;
+  probabilityNumberError.textContent = "";
   probabilityEditor.hidden = true;
   probabilityListView.hidden = false;
   probabilityCounterMenu.hidden = true;
@@ -2159,6 +2243,36 @@ probabilityEditorDeleteButton.addEventListener("click", function() {
   closeProbabilityEditor();
 });
 probabilityNameInput.addEventListener("input", renderFormulaDraft);
+// 数字は計算式の定数として保存する。総ゲーム数・小役の保存値には触れない。
+probabilityNumberInput.addEventListener("input", () => {
+  probabilityNumberError.hidden = true;
+  probabilityNumberError.textContent = "";
+});
+probabilityNumberForm.addEventListener("submit", event => {
+  event.preventDefault();
+  if (!probabilityDraft) return;
+  const raw = probabilityNumberInput.value.trim().replace(/[０-９]/g, ch =>
+    String(ch.charCodeAt(0) - 0xFF10)).replace(/．/g, ".").replace(/－/g, "-");
+  const numeric = Number(raw);
+  if (!/^-?(?:\d+(?:\.\d+)?|\.\d+)$/.test(raw) || !Number.isFinite(numeric)) {
+    probabilityNumberError.textContent = "数値を入力してください（例：100、0.5、-2）。";
+    probabilityNumberError.hidden = false;
+    return;
+  }
+  if (Math.abs(numeric) > 1000000000) {
+    probabilityNumberError.textContent = "入力できる数値は-10億〜10億です。";
+    probabilityNumberError.hidden = false;
+    return;
+  }
+  if (probabilityDraft.tokens.length >= MAX_FORMULA_TOKENS) {
+    probabilityNumberError.textContent = "計算式にこれ以上追加できません。";
+    probabilityNumberError.hidden = false;
+    return;
+  }
+  appendFormulaToken({ type: "number", value: numeric });
+  probabilityNumberForm.reset();
+  probabilityNumberInput.blur();
+});
 probabilityFormatButtons.forEach(button => {
   button.addEventListener("click", function() {
     if (!probabilityDraft) return;
@@ -2289,29 +2403,66 @@ rotateLayoutButton.addEventListener("click", () => {
 });
 applyManualLayout();
 
-// iPhone/iPad はキーボードの開閉時にレイアウト用viewportと
-// 実際に見える領域(visualViewport)の大きさが異なることがある。
-// ページを強制スクロールしたり端末ごとの固定値を足すのではなく、
-// 見えている領域の実測値へアプリの枠全体を追従させる。
-// CSS 100dvh は visualViewport が使えない場合のフォールバック。
+// iPhone/iPad: キーボードを表示している間は、通常時のアプリ枠を保持する。
+// visualViewport の縮小に下部タブまで追従させると、タブがキーボードの上に
+// 持ち上がってしまうため、入力中は追従を止める。
+// キーボードを閉じて元の表示領域に戻った時点で再開する。
 const isIOSViewport = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 if (isIOSViewport && window.visualViewport) {
   const viewport = window.visualViewport;
   const root = document.documentElement;
   let viewportFramePending = false;
+  let stableAppFrame = null;
+  let keyboardSession = false;
+
+  function isEditableKeyboardTarget(element) {
+    if (!element || !element.matches) return false;
+    if (element.matches("textarea, [contenteditable]:not([contenteditable='false'])")) return true;
+    return element.matches("input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='button']):not([type='submit']):not([type='reset']):not([type='hidden']):not([readonly])");
+  }
+
+  function readVisibleAppFrame() {
+    const { height, width, offsetTop, offsetLeft } = viewport;
+    if (![height, width, offsetTop, offsetLeft].every(Number.isFinite) ||
+        height <= 0 || width <= 0) return null;
+    return { height, width, top: offsetTop, left: offsetLeft };
+  }
+
+  function applyVisibleAppFrame(frame) {
+    root.style.setProperty("--app-visual-height", `${frame.height}px`);
+    root.style.setProperty("--app-visual-width", `${frame.width}px`);
+    root.style.setProperty("--app-visual-top", `${frame.top}px`);
+    root.style.setProperty("--app-visual-left", `${frame.left}px`);
+    root.classList.add("ios-viewport-managed");
+    stableAppFrame = frame;
+  }
 
   function updateVisibleAppFrame() {
-    const { height, width, offsetTop, offsetLeft } = viewport;
-    // 一時的な無効値を反映して画面を消してしまわないようにする。
-    if (![height, width, offsetTop, offsetLeft].every(Number.isFinite) ||
-        height <= 0 || width <= 0) return;
+    const frame = readVisibleAppFrame();
+    if (!frame) return;
 
-    root.style.setProperty("--app-visual-height", `${height}px`);
-    root.style.setProperty("--app-visual-width", `${width}px`);
-    root.style.setProperty("--app-visual-top", `${offsetTop}px`);
-    root.style.setProperty("--app-visual-left", `${offsetLeft}px`);
-    root.classList.add("ios-viewport-managed");
+    // フォーカス直後（まだキーボードが開ききっていない時点）から枠を固定する。
+    if (isEditableKeyboardTarget(document.activeElement)) {
+      keyboardSession = true;
+      return;
+    }
+
+    if (keyboardSession && stableAppFrame) {
+      const sameOrientation = Math.abs(frame.width - stableAppFrame.width) < 35;
+      // フォーカスが外れてもキーボードの閉じるアニメーション中は固定を続ける。
+      if (sameOrientation && frame.height < stableAppFrame.height - 80) return;
+      keyboardSession = false;
+
+      // iOSにはキーボードを閉じてもoffsetTopが戻らない場合がある。
+      // 画面の高さ・幅が元に戻っていれば、不要な位置ずれを持ち越さない。
+      if (sameOrientation && Math.abs(frame.height - stableAppFrame.height) < 80) {
+        applyVisibleAppFrame({ ...frame, top: stableAppFrame.top, left: stableAppFrame.left });
+        return;
+      }
+    }
+
+    applyVisibleAppFrame(frame);
   }
 
   function scheduleVisibleAppFrame() {
@@ -2323,7 +2474,6 @@ if (isIOSViewport && window.visualViewport) {
     });
   }
 
-  // キーボードの開閉・アドレスバーの変化・表示領域の移動に追従。
   viewport.addEventListener("resize", scheduleVisibleAppFrame);
   viewport.addEventListener("scroll", scheduleVisibleAppFrame);
   window.addEventListener("resize", scheduleVisibleAppFrame);

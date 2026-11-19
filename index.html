@@ -99,8 +99,8 @@
             <h2 class="counter-area-heading">全モード共通</h2>
             <div class="counter-list" id="common-counter-list"></div>
           </div>
-          <div class="counter-mode-tabs" id="counter-mode-tabs" role="group" aria-label="モード切り替え" hidden></div>
           <div class="mode-counter-area">
+            <div class="counter-mode-tabs" id="counter-mode-tabs" role="group" aria-label="モード切り替え" hidden></div>
             <div class="counter-list" id="counter-list"></div>
           </div>
           </div><!-- counter-work-area -->
@@ -158,17 +158,21 @@
                     placeholder="ここにメモを入力"></textarea>
         </section>
 
-        <!-- 確率タブ：通常は保存した項目の一覧、追加・編集時だけ式を作成 -->
+        <!-- 設定判別タブ：カスタム計算の一覧と編集画面 -->
         <section id="probability-screen" class="tab-panel" role="tabpanel" aria-labelledby="tab-probability" hidden>
           <div id="probability-list-view">
+            <div class="probability-list-heading">
+              <span>カスタム計算</span>
+              <div id="probability-reorder-controls"></div>
+            </div>
             <div id="probability-items" class="probability-items"></div>
-            <button type="button" id="probability-add" class="button probability-add">＋ 確率項目を追加</button>
+            <button type="button" id="probability-add" class="button probability-add">＋ 計算項目を追加</button>
           </div>
 
           <div id="probability-editor" class="probability-editor" hidden>
             <div class="probability-editor-top">
               <button type="button" id="probability-back" class="probability-secondary-button">← 戻る</button>
-              <h2 id="probability-editor-title">確率項目を作成</h2>
+              <h2 id="probability-editor-title">計算項目を作成</h2>
               <button type="button" id="probability-editor-delete" class="probability-editor-delete" hidden>削除</button>
             </div>
             <label class="probability-field-label" for="probability-name">項目名</label>
@@ -187,6 +191,14 @@
               <button type="button" id="probability-games" class="probability-value-button">総ゲーム数</button>
               <button type="button" id="probability-counter" class="probability-value-button" aria-expanded="false">小役</button>
             </div>
+            <!-- 固定数値を計算式へ追加。カウント値や総ゲーム数は変更しない。 -->
+            <form id="probability-number-form" class="probability-number-form" novalidate>
+              <label for="probability-number-input">数値</label>
+              <input type="text" id="probability-number-input" inputmode="decimal" maxlength="16"
+                     autocomplete="off" spellcheck="false" placeholder="例：100、0.5" aria-describedby="probability-number-error">
+              <button type="submit" id="probability-number-add">式に追加</button>
+            </form>
+            <p id="probability-number-error" class="probability-number-error" role="alert" hidden></p>
             <div id="probability-counter-menu" class="probability-counter-menu" hidden></div>
             <div class="probability-edit-tools">
               <button type="button" id="probability-undo" class="probability-secondary-button">1つ戻す</button>
@@ -293,10 +305,12 @@
           </div><!-- 設定一覧 -->
 
           <!-- モードを選択するとこの画面へ移動し、そのモードの小役を編集 -->
-          <section id="settings-mode-detail" class="settings-mode-detail" aria-labelledby="settings-mode-detail-title" hidden>
+          <section id="settings-mode-detail" class="settings-mode-detail" aria-label="モードの小役設定" hidden>
             <div class="settings-mode-detail-header">
               <button type="button" id="settings-mode-back" class="settings-mode-back">← 戻る</button>
-              <h2 id="settings-mode-detail-title"></h2>
+              <label class="mode-detail-name-label" for="settings-mode-detail-title">モード名</label>
+              <input type="text" id="settings-mode-detail-title" class="mode-detail-name-input" maxlength="30" aria-label="モード名" autocomplete="off">
+              <button type="button" id="settings-mode-delete" class="settings-mode-delete">削除</button>
             </div>
             <div id="settings-mode-detail-content"></div>
           </section>
