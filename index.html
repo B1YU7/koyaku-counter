@@ -70,6 +70,11 @@
           </button>
         </div>
       </div>
+      <!-- 機種切替は全タブ共通のヘッダーに配置する -->
+      <div class="machine-header-row">
+        <label for="machine-switch">機種</label>
+        <select id="machine-switch" aria-label="機種を切り替え"></select>
+      </div>
     </header>
 
     <!-- スクロールするのは画面中央のコンテンツだけ -->
@@ -223,6 +228,22 @@
         <section id="settings-screen" class="tab-panel" role="tabpanel" aria-labelledby="tab-settings" hidden>
           <div id="settings-overview">
 
+          <!-- 全機種に共通する操作。選択中機種の名称を編集・追加・削除する -->
+          <section class="machine-settings-group" aria-labelledby="machine-settings-heading">
+            <h2 id="machine-settings-heading">機種管理</h2>
+            <label for="machine-name-input">現在の機種名</label>
+            <input id="machine-name-input" type="text" maxlength="40" autocomplete="off" aria-label="現在の機種名">
+            <div class="machine-settings-actions">
+              <button type="button" class="button machine-add-button" id="machine-add">＋ 機種を追加</button>
+              <button type="button" class="machine-delete-button" id="machine-delete">この機種を削除</button>
+            </div>
+            <button type="button" class="machine-export-button" id="machine-export">現在の機種をエクスポート</button>
+            <button type="button" class="machine-import-button" id="machine-import">プリセットをインポート</button>
+            <input type="file" id="machine-import-file" accept=".json,.koyaku.json,application/json" aria-label="機種プリセットファイルを選択" hidden>
+            <p class="machine-settings-note">書き出し・読み込みの対象は機種の構成・カスタム計算・表示設定だけです。カウント値・総ゲーム数・履歴・メモは含みません。読み込んだ機種は新規追加されます。</p>
+            <p class="machine-settings-note">機種の切り替えは画面上部から行えます。</p>
+          </section>
+
           <!-- 共通は独立した枠で展開。モードは別の1つの枠にまとめる。 -->
           <section class="settings-accordion counter-settings-group" aria-label="全モード共通">
             <button type="button" id="common-settings-toggle" class="settings-accordion-toggle"
@@ -241,8 +262,9 @@
             <button type="button" class="button add-button" id="add-mode">＋ モードを追加</button>
           </section>
 
-          <!-- 表示設定：4つの設定を1つの枠にまとめる -->
-          <div class="display-settings-group" role="group" aria-label="表示設定">
+          <!-- 機種別表示設定は機種を切り替えると切り替わる -->
+          <div class="display-settings-group" role="group" aria-label="機種別の表示設定">
+            <h2 class="machine-display-heading">機種別の表示設定</h2>
             <!-- 縦表示・横表示でカウンターの横並び数を独立して設定する -->
             <div class="column-setting">
               <label class="column-setting-label" for="counter-columns-portrait">縦表示の横並び数</label>
@@ -292,6 +314,11 @@
               <span class="number-size-preview-number" id="number-font-size-preview">888</span>
             </div>
 
+          </div>
+
+          <!-- 全機種で共有する設定 -->
+          <section class="global-settings-group" aria-labelledby="global-settings-heading">
+            <h2 id="global-settings-heading">全体設定</h2>
             <!-- 画面テーマ設定 -->
             <div class="theme-setting">
               <span class="theme-setting-label">画面テーマ</span>
@@ -300,8 +327,8 @@
                 <button type="button" class="theme-option" id="dark-theme"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 13a8.5 8.5 0 0 1-9.5-9.5A8.5 8.5 0 1 0 20.5 13Z"></path></svg><span>ダーク</span></button>
               </div>
             </div>
-
-          </div>
+            <p>画面の向きは全機種共通です。メモは機種ごとに保存されます。</p>
+          </section>
           </div><!-- 設定一覧 -->
 
           <!-- モードを選択するとこの画面へ移動し、そのモードの小役を編集 -->
@@ -347,6 +374,18 @@
     </nav>
 
   </div>
+
+  <!-- プリセット読み込み前に構成を確認し、既存の機種を上書きしない -->
+  <dialog id="machine-import-dialog" class="machine-import-dialog" aria-labelledby="machine-import-title" aria-describedby="machine-import-description">
+    <h2 id="machine-import-title">プリセットの読み込み確認</h2>
+    <p id="machine-import-description">新しい機種として追加します。既存の機種は変更しません。</p>
+    <div id="machine-import-preview" class="machine-import-preview"></div>
+    <p class="machine-import-warning">カウント値・総ゲーム数・履歴・メモは引き継がず、0から始まります。</p>
+    <div class="machine-import-actions">
+      <button type="button" id="machine-import-cancel" class="machine-import-cancel">キャンセル</button>
+      <button type="button" id="machine-import-confirm" class="machine-import-confirm">新しい機種として追加</button>
+    </div>
+  </dialog>
 
   <!-- 長押しで開くカウント直接編集ダイアログ -->
   <dialog id="count-edit-dialog" class="count-edit-dialog" aria-labelledby="count-edit-title">

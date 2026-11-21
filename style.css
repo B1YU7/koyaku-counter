@@ -2411,3 +2411,217 @@ html.ios-viewport-managed:not(.landscape-mode) .container {
   color: #d9534f;
   font-size: 13px;
 }
+
+/* =====================================
+   v41: 機種選択と機種管理
+   ヘッダー中央のタブ名・回転・リセットは従来どおりに保つ。
+===================================== */
+.machine-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin: 6px auto 0;
+  width: min(100%, 900px);
+  min-width: 0;
+  color: var(--text, #222);
+  font-size: 13px;
+  font-weight: 600;
+}
+.machine-header-row label { flex: none; }
+#machine-switch {
+  min-width: 0;
+  width: min(55vw, 310px);
+  max-width: 100%;
+  height: 33px;
+  padding: 3px 26px 3px 10px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  background: var(--input-bg, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+.machine-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  min-width: 0;
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+}
+.machine-settings-group h2 {
+  margin: 0 0 2px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--border, #ddd);
+  font-size: 16px;
+}
+.machine-settings-group label { font-size: 13px; font-weight: 600; }
+#machine-name-input {
+  width: 100%;
+  min-height: 43px;
+  padding: 9px 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  background: var(--input-bg, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 16px;
+}
+.machine-settings-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.machine-add-button { flex: 1 1 130px; background: #29865b; }
+.machine-delete-button {
+  flex: 1 1 130px;
+  min-height: 44px;
+  padding: 9px;
+  border: 1px solid #c84a4a;
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  color: #c84a4a;
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+.machine-delete-button:disabled { opacity: .45; cursor: not-allowed; }
+.machine-export-button,
+.machine-import-button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  background: var(--surface-soft, #f8f8f8);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.machine-export-button:active,
+.machine-import-button:active { opacity: .8; }
+.machine-settings-note { color: var(--muted, #666); font-size: 12px; margin: 0; }
+/* 固定ラベルは選択不可。機種名入力欄は編集・文字選択可能のまま。 */
+.machine-header-row label,
+.machine-settings-group :is(h2, label, button, p) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+@media (max-width: 370px) {
+  .machine-header-row { gap: 6px; }
+  #machine-switch { width: min(68vw, 290px); }
+}
+.landscape-mode .machine-header-row {
+  margin-top: 3px;
+  font-size: 12px;
+}
+.landscape-mode #machine-switch { height: 29px; }
+
+/* v41：機種別の表示設定と全体設定を別の枠に分ける */
+.display-settings-group {
+  grid-template-rows: auto repeat(4, minmax(min-content, 1fr)) 104px;
+}
+.machine-display-heading,
+.global-settings-group h2 {
+  margin: 0;
+  padding: 12px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text, #222);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.global-settings-group {
+  min-width: 0;
+  margin: 20px 0;
+  padding: 0 15px 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+}
+.global-settings-group h2 { border-bottom: 1px solid var(--border, #ddd); }
+.global-settings-group .theme-setting {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 15px 0;
+  border: 0;
+  background: transparent;
+}
+.global-settings-group .theme-toggle { width: min(50%, 180px); flex: 0 1 180px; min-width: 0; }
+.global-settings-group .theme-option { flex: 1 1 0; min-width: 0; padding-left: 4px; padding-right: 4px; }
+.global-settings-group .theme-setting-label { white-space: nowrap; }
+.global-settings-group p { margin: 0; color: var(--muted, #666); font-size: 12px; }
+@media (max-width: 420px) {
+  .global-settings-group .theme-toggle { width: 155px; flex: 0 1 155px; }
+  .global-settings-group .theme-setting-label { font-size: 13px; }
+}
+
+/* ヘッダーの既存flex横並びを縦並びにし、タイトルの中央位置を保持する。 */
+.app-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+/* v45: プリセット読み込み。ダイアログは固定ヘッダーやタブより手前に表示。 */
+.machine-import-dialog {
+  box-sizing: border-box;
+  width: min(92vw, 480px);
+  max-width: 480px;
+  max-height: min(85dvh, 720px);
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, .24);
+}
+.machine-import-dialog::backdrop { background: rgba(0, 0, 0, .6); }
+.machine-import-dialog h2 { margin: 0 0 10px; font-size: 18px; }
+.machine-import-dialog p { margin: 8px 0; font-size: 13px; line-height: 1.6; }
+.machine-import-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 48dvh;
+  overflow: auto;
+  padding: 12px;
+  margin: 12px 0;
+  background: var(--surface-soft, #f8f8f8);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.machine-import-preview dl { display: grid; grid-template-columns: 92px minmax(0, 1fr); margin: 0; gap: 8px; }
+.machine-import-preview dt { font-weight: bold; color: var(--muted, #666); }
+.machine-import-preview dd { margin: 0; white-space: pre-wrap; }
+.machine-import-preview .machine-import-details { margin: 0; padding-top: 8px; border-top: 1px solid var(--border, #ddd); }
+.machine-import-warning { color: var(--muted, #666); }
+.machine-import-actions { display: flex; gap: 10px; margin-top: 16px; }
+.machine-import-actions button {
+  flex: 1; min-width: 0; min-height: 44px; border-radius: 9px;
+  border: 1px solid var(--border, #ddd); padding: 10px 8px;
+  font: inherit; font-size: 13px; font-weight: bold; cursor: pointer;
+}
+.machine-import-cancel { color: var(--text, #222); background: var(--surface-soft, #eee); }
+.machine-import-confirm { color: #fff; background: #287b54; border-color: #287b54 !important; }
+.machine-import-actions button:disabled { opacity: .5; cursor: default; }
+.machine-import-dialog :is(h2, p, dt, dd, button) {
+  -webkit-user-select: none; user-select: none;
+}
