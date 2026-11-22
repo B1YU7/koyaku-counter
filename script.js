@@ -95,6 +95,134 @@ function renderMachineSelect() {
   select.value = activeMachineId;
   select.title = getActiveMachine()?.name || "機種";
 }
+// 機種の並び替え対象と編集対象は、現在カウントしている機種と独立して管理する。
+// (editingMachineId / reorderSelectedMachineId は設定画面の状態として後方で宣言。)
+function updateMachineReorderSelection() {
+  const list = document.getElementById("machine-settings-list");
+  const controls = document.querySelector(".machine-settings-heading > .always-move-controls");
+  if (!controls) return;
+  const index = machines.findIndex(machine => machine.id === reorderSelectedMachineId);
+  const [up, down] = controls.querySelectorAll("button");
+  up.disabled = index <= 0;
+  down.disabled = index < 0 || index >= machines.length - 1;
+  list.querySelectorAll(".machine-settings-item").forEach(item => {
+    const selected = item.dataset.machineId === reorderSelectedMachineId;
+    item.classList.toggle("selected", selected);
+    const radio = item.querySelector(".reorder-select");
+    if (radio) radio.checked = selected;
+  });
+}
+function moveSelectedMachine(delta) {
+  const index = machines.findIndex(machine => machine.id === reorderSelectedMachineId);
+  const next = index + delta;
+  if (index < 0 || next < 0 || next >= machines.length) return;
+  [machines[index], machines[next]] = [machines[next], machines[index]];
+  try { saveMachineRegistry(); }
+  catch (error) {
+    [machines[index], machines[next]] = [machines[next], machines[index]];
+    console.error(error);
+    window.alert("機種の並び順を保存できませんでした。");
+    return;
+  }
+  // 選択した機種を維持し、現在の機種・各機種のカウント値は変更しない。
+  renderMachineSettings();
+  renderMachineSelect();
+}
+function renderMachineSettings() {
+  const list = document.getElementById("machine-settings-list");
+  const overview = document.getElementById("machine-settings-overview");
+  const editDetail = document.getElementById("machine-edit-detail");
+  if (!machines.some(machine => machine.id === reorderSelectedMachineId)) reorderSelectedMachineId = null;
+  const editingMachine = machines.find(machine => machine.id === editingMachineId);
+  if (!editingMachine) editingMachineId = null;
+  overview.hidden = !!editingMachineId;
+  editDetail.hidden = !editingMachineId;
+  if (editingMachine) {
+    document.getElementById("machine-name-input").value = editingMachine.name;
+    document.getElementById("machine-delete").disabled = machines.length === 1;
+  }
+  list.replaceChildren();
+  machines.forEach((machine, index) => {
+    const item = document.createElement("div");
+    item.className = "machine-settings-item";
+    item.dataset.machineId = machine.id;
+    const row = document.createElement("div");
+    row.className = "machine-settings-row";
+    const selector = document.createElement("input");
+    selector.type = "radio";
+    selector.className = "reorder-select";
+    selector.name = "machine-reorder";
+    selector.value = machine.id;
+    selector.checked = reorderSelectedMachineId === machine.id;
+    selector.setAttribute("aria-label", `機種「${machine.name.trim() || "名前なし"}」を並び替え対象に選択`);
+    selector.addEventListener("change", () => {
+      reorderSelectedMachineId = machine.id;
+      updateMachineReorderSelection();
+    });
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "mode-row-toggle machine-row-toggle";
+    toggle.setAttribute("aria-label", `${machine.name.trim() || "名前なし"}の機種設定へ移動`);
+    const label = document.createElement("span");
+    label.className = "mode-row-name";
+    label.textContent = machine.name.trim() || "名前なし";
+    const arrow = document.createElement("span");
+    arrow.className = "mode-row-arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    toggle.append(label, arrow);
+    toggle.addEventListener("click", () => {
+      editingMachineId = machine.id;
+      renderMachineSettings();
+      appContent.scrollTop = 0;
+      settingsMachineBack.focus({ preventScroll: true });
+    });
+    row.append(selector, toggle);
+    item.appendChild(row);
+    list.appendChild(item);
+  });
+  updateMachineReorderSelection();
+}
+function deleteEditingMachine() {
+  const machine = machines.find(item => item.id === editingMachineId);
+  if (!machine || machines.length <= 1 || !confirmMachineNavigation()) return;
+  if (!window.confirm(`「${machine.name || "名前なし"}」を削除しますか？\nこの機種のカウント値・履歴・メモ・設定も削除され、元に戻せません。`)) return;
+  const index = machines.indexOf(machine);
+  const wasActive = machine.id === activeMachineId;
+  const nextActive = wasActive ? machines[index === 0 ? 1 : index - 1].id : activeMachineId;
+  const previousRegistry = localStorage.getItem(MACHINE_REGISTRY_KEY);
+  const previousActive = localStorage.getItem(ACTIVE_MACHINE_KEY);
+  machines.splice(index, 1);
+  try {
+    saveMachineRegistry();
+    if (wasActive) localStorage.setItem(ACTIVE_MACHINE_KEY, nextActive);
+  } catch (error) {
+    machines.splice(index, 0, machine);
+    try {
+      if (previousRegistry === null) localStorage.removeItem(MACHINE_REGISTRY_KEY);
+      else localStorage.setItem(MACHINE_REGISTRY_KEY, previousRegistry);
+      if (previousActive === null) localStorage.removeItem(ACTIVE_MACHINE_KEY);
+      else localStorage.setItem(ACTIVE_MACHINE_KEY, previousActive);
+    } catch (restoreError) { console.error("機種管理情報の復元に失敗しました", restoreError); }
+    console.error(error);
+    window.alert("機種を削除できませんでした。データを確認してください。");
+    return;
+  }
+  // レジストリと選択先を確定してから、この機種の保存領域だけを掃除する。
+  MACHINE_OWNED_KEYS.forEach(key => {
+    try { localStorage.removeItem(`${MACHINE_DATA_PREFIX}${machine.id}:${key}`); }
+    catch (error) { console.error("削除した機種のデータを消去できませんでした", error); }
+  });
+  editingMachineId = null;
+  if (reorderSelectedMachineId === machine.id) reorderSelectedMachineId = null;
+  if (wasActive) {
+    sessionStorage.setItem("counterMachineTabRestoreV1", "settings");
+    sessionStorage.setItem("counterMachineSettingsRestoreV1", "machine");
+    window.location.reload();
+  } else {
+    renderMachineSettings();
+    renderMachineSelect();
+  }
+}
 function initMachineControls() {
   const select = document.getElementById("machine-switch");
   const nameInput = document.getElementById("machine-name-input");
@@ -102,26 +230,39 @@ function initMachineControls() {
   const deleteButton = document.getElementById("machine-delete");
   const exportButton = document.getElementById("machine-export");
   renderMachineSelect();
-  nameInput.value = getActiveMachine()?.name || "";
-  deleteButton.disabled = machines.length === 1;
+  const reorderControls = createMoveControls(false, false,
+    () => moveSelectedMachine(-1), () => moveSelectedMachine(1), "選択した機種");
+  document.querySelector(".machine-settings-heading").appendChild(reorderControls);
+  renderMachineSettings();
   select.addEventListener("change", () => {
     try { if (!setActiveMachine(select.value)) select.value = activeMachineId; }
     catch (error) { console.error(error); window.alert("機種を切り替えられませんでした。保存領域を確認してください。"); select.value = activeMachineId; }
   });
-  // 名称変更だけでは別機種のデータを変更しない。
   nameInput.addEventListener("input", () => {
-    const machine = getActiveMachine();
+    const machine = machines.find(item => item.id === editingMachineId);
     if (!machine) return;
     const previous = machine.name;
     machine.name = nameInput.value.slice(0, 40);
-    try { saveMachineRegistry(); renderMachineSelect(); }
-    catch (error) { machine.name = previous; console.error(error); window.alert("機種名を保存できませんでした。"); }
+    try {
+      saveMachineRegistry();
+      renderMachineSelect();
+      // リストに戻ったときだけ名称の最新値で描画する。
+    } catch (error) {
+      machine.name = previous;
+      nameInput.value = previous;
+      console.error(error);
+      window.alert("機種名を保存できませんでした。");
+    }
   });
   addButton.addEventListener("click", () => {
     if (!confirmMachineNavigation()) return;
     let number = 1;
     while (machines.some(item => item.name === `機種${number}`)) number++;
-    const machine = { id: newMachineId(), name: `機種${number}` };
+    let id;
+    do { id = newMachineId(); } while (machines.some(item => item.id === id));
+    const machine = { id, name: `機種${number}` };
+    const previousRegistry = localStorage.getItem(MACHINE_REGISTRY_KEY);
+    const previousActive = localStorage.getItem(ACTIVE_MACHINE_KEY);
     machines.push(machine);
     try {
       saveMachineRegistry();
@@ -131,33 +272,19 @@ function initMachineControls() {
       window.location.reload();
     } catch (error) {
       machines.pop();
+      try {
+        if (previousRegistry === null) localStorage.removeItem(MACHINE_REGISTRY_KEY);
+        else localStorage.setItem(MACHINE_REGISTRY_KEY, previousRegistry);
+        if (previousActive === null) localStorage.removeItem(ACTIVE_MACHINE_KEY);
+        else localStorage.setItem(ACTIVE_MACHINE_KEY, previousActive);
+      } catch (restoreError) { console.error("機種の追加を復元できませんでした", restoreError); }
       console.error(error);
       window.alert("機種を追加できませんでした。保存領域を確認してください。");
     }
   });
   exportButton.addEventListener("click", exportCurrentMachinePreset);
   initMachineImportControls();
-  deleteButton.addEventListener("click", () => {
-    if (machines.length <= 1 || !confirmMachineNavigation()) return;
-    const machine = getActiveMachine();
-    if (!machine || !window.confirm(`「${machine.name || "名前なし"}」を削除しますか？\nこの機種のカウント値・履歴・メモ・設定も削除され、元に戻せません。`)) return;
-    const before = machines.slice();
-    const index = machines.findIndex(item => item.id === machine.id);
-    machines.splice(index, 1);
-    try {
-      saveMachineRegistry();
-      localStorage.setItem(ACTIVE_MACHINE_KEY, machines[Math.max(0, index - 1)].id);
-      // 管理情報と切り替え先の保存が済んでから、削除した機種のデータを消す。
-      MACHINE_OWNED_KEYS.forEach(key => localStorage.removeItem(`${MACHINE_DATA_PREFIX}${machine.id}:${key}`));
-      sessionStorage.setItem("counterMachineTabRestoreV1", "settings");
-      sessionStorage.setItem("counterMachineSettingsRestoreV1", "machine");
-      window.location.reload();
-    } catch (error) {
-      machines.splice(0, machines.length, ...before);
-      console.error(error);
-      window.alert("機種を削除できませんでした。データを確認してください。");
-    }
-  });
+  deleteButton.addEventListener("click", deleteEditingMachine);
 }
 
 // ===================================
@@ -1582,6 +1709,8 @@ const counterEditorStates = new Map();
 let commonSettingsOpen = false;
 let editingModeId = null;
 let machineSettingsOpen = false;
+let editingMachineId = null;
+let reorderSelectedMachineId = null;
 let reorderSelectedModeId = null; // モード一覧の並び替え対象。カウンター画面の選択モードとは別。
 
 function editorState(groupId) {
@@ -2005,6 +2134,7 @@ function renderSettings() {
   if (!editingMode) editingModeId = null;
   settingsOverview.hidden = !!editingModeId || machineSettingsOpen;
   settingsMachineDetail.hidden = !machineSettingsOpen || !!editingModeId;
+  if (machineSettingsOpen && !editingModeId) renderMachineSettings();
   settingsModeDetail.hidden = !editingModeId;
   settingsModeDetailContent.replaceChildren();
   if (editingModeId) {
@@ -2245,12 +2375,19 @@ function renderModeSettings() {
 // 機種設定へは設定一覧から遷移し、戻る操作で一覧へ戻す。
 settingsMachineOpen.addEventListener("click", () => {
   editingModeId = null;
+  editingMachineId = null;
   machineSettingsOpen = true;
   renderSettings();
   appContent.scrollTop = 0;
   settingsMachineBack.focus({ preventScroll: true });
 });
 settingsMachineBack.addEventListener("click", () => {
+  if (editingMachineId) {
+    editingMachineId = null;
+    renderMachineSettings();
+    appContent.scrollTop = 0;
+    return;
+  }
   machineSettingsOpen = false;
   renderSettings();
   appContent.scrollTop = 0;
@@ -2412,6 +2549,7 @@ function selectTab(tabName) {
   // 設定タブを離れたら、次回は設定の一覧画面から開く。
   if (tabName !== "settings") {
     editingModeId = null;
+    editingMachineId = null;
     machineSettingsOpen = false;
   }
   // 設定タブを離れたら並び替えモードを終了する。

@@ -322,20 +322,32 @@
               <button type="button" id="settings-machine-back" class="settings-mode-back">← 戻る</button>
               <h2>機種設定</h2>
             </div>
-          <!-- 全機種に共通する操作。選択中機種の名称を編集・追加・削除する -->
-          <section class="machine-settings-group" aria-label="機種設定">
-            <label for="machine-name-input">現在の機種名</label>
-            <input id="machine-name-input" type="text" maxlength="40" autocomplete="off" aria-label="現在の機種名">
-            <div class="machine-settings-actions">
-              <button type="button" class="button machine-add-button" id="machine-add">＋ 機種を追加</button>
-              <button type="button" class="machine-delete-button" id="machine-delete">この機種を削除</button>
-            </div>
-            <button type="button" class="machine-export-button" id="machine-export">現在の機種をエクスポート</button>
-            <button type="button" class="machine-import-button" id="machine-import">プリセットをインポート</button>
-            <input type="file" id="machine-import-file" accept=".json,.koyaku.json,application/json" aria-label="機種プリセットファイルを選択" hidden>
-            <p class="machine-settings-note">書き出し・読み込みの対象は機種の構成・カスタム計算・表示設定だけです。カウント値・総ゲーム数・履歴・メモは含みません。読み込んだ機種は新規追加されます。</p>
-            <p class="machine-settings-note">機種の切り替えは画面上部から行えます。</p>
-          </section>
+          <!-- 機種もモードと同様に、一覧で選択して右上の上下ボタンで並び替える。 -->
+          <div id="machine-settings-overview">
+            <section class="machine-settings-group" aria-label="機種一覧">
+              <div class="machine-settings-heading">
+                <h3>機種</h3>
+              </div>
+              <div id="machine-settings-list" class="machine-settings-list"></div>
+              <button type="button" class="button add-button machine-add-button" id="machine-add">＋ 機種を追加</button>
+            </section>
+            <section class="machine-settings-group" aria-label="機種プリセット">
+              <button type="button" class="machine-export-button" id="machine-export">現在の機種をエクスポート</button>
+              <button type="button" class="machine-import-button" id="machine-import">プリセットをインポート</button>
+              <input type="file" id="machine-import-file" accept=".json,.koyaku.json,application/json" aria-label="機種プリセットファイルを選択" hidden>
+              <p class="machine-settings-note">書き出し・読み込みの対象は機種の構成・カスタム計算・表示設定だけです。カウント値・総ゲーム数・履歴・メモは含みません。読み込んだ機種は新規追加されます。</p>
+              <p class="machine-settings-note">機種の切り替えは画面上部から行えます。</p>
+            </section>
+          </div>
+
+          <!-- 一覧の機種名を押すとこの詳細に進み、名前変更と削除を行う。 -->
+          <div id="machine-edit-detail" class="machine-edit-detail" hidden>
+            <section class="machine-settings-group" aria-label="機種名の編集">
+              <label for="machine-name-input">機種名</label>
+              <input id="machine-name-input" type="text" maxlength="40" autocomplete="off" aria-label="機種名">
+              <button type="button" class="machine-delete-button" id="machine-delete">削除</button>
+            </section>
+          </div>
 
           </section>
 

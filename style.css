@@ -2726,3 +2726,44 @@ html.ios-viewport-managed:not(.landscape-mode) .container {
   user-select: none;
 }
 .settings-machine-detail > .machine-settings-group { margin-bottom: 0; }
+
+/* 機種一覧はモード・小役と同様に、丸い選択欄と右上の上下移動を使う。 */
+.machine-settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border, #ddd);
+  padding-bottom: 12px;
+  margin-bottom: 3px;
+}
+.machine-settings-heading h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #222);
+}
+.machine-settings-heading > .always-move-controls {
+  margin-left: auto;
+  gap: 6px;
+}
+.machine-settings-heading .always-move-button {
+  width: 40px;
+  height: 40px;
+  flex-basis: 40px;
+  font-size: 22px;
+}
+.machine-settings-list { display: flex; flex-direction: column; min-width: 0; }
+.machine-settings-item { border-bottom: 1px solid var(--border, #ddd); min-width: 0; }
+.machine-settings-item:last-child { border-bottom: none; }
+.machine-settings-item.selected { background: var(--surface-soft,#f8f8f8); border-radius: 8px; }
+.machine-settings-row { display: flex; align-items: center; gap: 10px; min-height: 64px; }
+.machine-row-toggle { flex: 1 1 auto; min-width: 0; }
+.machine-settings-group > .machine-add-button { flex: none; width: 100%; }
+#machine-settings-overview { display: flex; flex-direction: column; gap: 16px; }
+#machine-settings-overview[hidden], #machine-edit-detail[hidden] { display: none !important; }
+.machine-settings-group label { -webkit-user-select: none; user-select: none; }
+@media(max-width: 400px) { .machine-settings-row { gap: 7px; } }
+
+.machine-settings-heading, .machine-settings-item .mode-row-name { -webkit-user-select: none; user-select: none; }
+#machine-settings-overview > .machine-settings-group { margin-bottom: 0; }
