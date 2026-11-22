@@ -79,6 +79,7 @@ function setActiveMachine(id) {
   // タブは画面を切り替えた位置に復元する。端末全体に保存はしない。
   sessionStorage.setItem("counterMachineTabRestoreV1",
     document.querySelector(".tab-button.active")?.dataset.tab || "counter");
+  if (machineSettingsOpen) sessionStorage.setItem("counterMachineSettingsRestoreV1", "machine");
   window.location.reload();
   return true;
 }
@@ -126,6 +127,7 @@ function initMachineControls() {
       saveMachineRegistry();
       localStorage.setItem(ACTIVE_MACHINE_KEY, machine.id);
       sessionStorage.setItem("counterMachineTabRestoreV1", "settings");
+      sessionStorage.setItem("counterMachineSettingsRestoreV1", "machine");
       window.location.reload();
     } catch (error) {
       machines.pop();
@@ -148,6 +150,7 @@ function initMachineControls() {
       // 管理情報と切り替え先の保存が済んでから、削除した機種のデータを消す。
       MACHINE_OWNED_KEYS.forEach(key => localStorage.removeItem(`${MACHINE_DATA_PREFIX}${machine.id}:${key}`));
       sessionStorage.setItem("counterMachineTabRestoreV1", "settings");
+      sessionStorage.setItem("counterMachineSettingsRestoreV1", "machine");
       window.location.reload();
     } catch (error) {
       machines.splice(0, machines.length, ...before);
@@ -494,7 +497,10 @@ function importMachinePreset(preset) {
     saveMachineRegistry();
     registryUpdated = true;
     // タブ表示は設定に戻す。セッション保存に失敗してもインポート自体は可能。
-    try { sessionStorage.setItem("counterMachineTabRestoreV1", "settings"); } catch (_) { /* 表示のみ */ }
+    try {
+      sessionStorage.setItem("counterMachineTabRestoreV1", "settings");
+      sessionStorage.setItem("counterMachineSettingsRestoreV1", "machine");
+    } catch (_) { /* 表示のみ */ }
     localStorage.setItem(ACTIVE_MACHINE_KEY, id);
     activeUpdated = true;
   } catch (error) {
@@ -818,6 +824,9 @@ const commonSettingsToggle = document.getElementById("common-settings-toggle");
 const commonSettingsContent = document.getElementById("common-settings-content");
 const modeSettingsList = document.getElementById("mode-settings-list");
 const settingsOverview = document.getElementById("settings-overview");
+const settingsMachineDetail = document.getElementById("settings-machine-detail");
+const settingsMachineOpen = document.getElementById("settings-machine-open");
+const settingsMachineBack = document.getElementById("settings-machine-back");
 const settingsModeDetail = document.getElementById("settings-mode-detail");
 const settingsModeDetailTitle = document.getElementById("settings-mode-detail-title");
 const settingsModeDelete = document.getElementById("settings-mode-delete");
@@ -833,7 +842,6 @@ const memoScreen = document.getElementById("memo-screen");
 const probabilityScreen = document.getElementById("probability-screen");
 const settingsScreen = document.getElementById("settings-screen");
 const appContent = document.getElementById("app-content");
-const headerTitle = document.getElementById("header-title");
 
 const resetAllButton = document.getElementById("reset-all");
 const resetMemoButton = document.getElementById("reset-memo");
@@ -1573,6 +1581,7 @@ countEditReset.addEventListener("click", function() {
 const counterEditorStates = new Map();
 let commonSettingsOpen = false;
 let editingModeId = null;
+let machineSettingsOpen = false;
 let reorderSelectedModeId = null; // モード一覧の並び替え対象。カウンター画面の選択モードとは別。
 
 function editorState(groupId) {
@@ -1994,7 +2003,8 @@ function renderSettings() {
   const editingMode = modes.find(mode => mode.id === editingModeId);
   // モード削除などで編集対象がなくなったら一覧へ戻す。
   if (!editingMode) editingModeId = null;
-  settingsOverview.hidden = !!editingModeId;
+  settingsOverview.hidden = !!editingModeId || machineSettingsOpen;
+  settingsMachineDetail.hidden = !machineSettingsOpen || !!editingModeId;
   settingsModeDetail.hidden = !editingModeId;
   settingsModeDetailContent.replaceChildren();
   if (editingModeId) {
@@ -2219,6 +2229,7 @@ function renderModeSettings() {
     chevron.setAttribute("aria-hidden", "true");
     toggle.append(label, chevron);
     toggle.addEventListener("click", () => {
+      machineSettingsOpen = false;
       editingModeId = mode.id;
       renderSettings();
       appContent.scrollTop = 0;
@@ -2230,6 +2241,21 @@ function renderModeSettings() {
   });
   updateModeReorderSelection();
 }
+
+// 機種設定へは設定一覧から遷移し、戻る操作で一覧へ戻す。
+settingsMachineOpen.addEventListener("click", () => {
+  editingModeId = null;
+  machineSettingsOpen = true;
+  renderSettings();
+  appContent.scrollTop = 0;
+  settingsMachineBack.focus({ preventScroll: true });
+});
+settingsMachineBack.addEventListener("click", () => {
+  machineSettingsOpen = false;
+  renderSettings();
+  appContent.scrollTop = 0;
+  settingsMachineOpen.focus({ preventScroll: true });
+});
 
 settingsModeDetailTitle.addEventListener("input", () => {
   const mode = modes.find(entry => entry.id === editingModeId);
@@ -2358,6 +2384,8 @@ function selectTab(tabName) {
   if (activeTab === tabName) {
     if (tabName === "settings" && editingModeId) {
       settingsModeBack.click();
+    } else if (tabName === "settings" && machineSettingsOpen) {
+      settingsMachineBack.click();
     } else if (tabName === "probability" && !probabilityEditor.hidden) {
       if (hasUnsavedProbabilityChanges() &&
           !window.confirm("保存していない変更があります。\n変更を破棄して一覧に戻りますか？")) return;
@@ -2377,16 +2405,15 @@ function selectTab(tabName) {
     button.tabIndex = selected ? 0 : -1;
   });
 
-  // ヘッダーには選択したタブと同じ名前を表示する。
-  const selectedTab = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
-  headerTitle.textContent = selectedTab.querySelector(".tab-label").textContent.trim();
-
   // リセットは表示しているタブ専用。
   resetAllButton.hidden = tabName !== "counter";
   resetMemoButton.hidden = tabName !== "memo";
 
   // 設定タブを離れたら、次回は設定の一覧画面から開く。
-  if (tabName !== "settings") editingModeId = null;
+  if (tabName !== "settings") {
+    editingModeId = null;
+    machineSettingsOpen = false;
+  }
   // 設定タブを離れたら並び替えモードを終了する。
   if (tabName !== "settings") {
     if (activeRowActionClose) activeRowActionClose();
@@ -2994,6 +3021,11 @@ rotateLayoutButton.addEventListener("click", () => {
 });
 applyManualLayout();
 initMachineControls();
+// 機種追加・削除・切替・インポート後も機種設定画面を復元する。
+if (sessionStorage.getItem("counterMachineSettingsRestoreV1") === "machine") {
+  sessionStorage.removeItem("counterMachineSettingsRestoreV1");
+  machineSettingsOpen = true;
+}
 // 機種切替で再起動しても開いていたタブへ戻す。
 const restoredMachineTab = sessionStorage.getItem("counterMachineTabRestoreV1");
 if (restoredMachineTab) {

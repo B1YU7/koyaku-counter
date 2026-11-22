@@ -2625,3 +2625,104 @@ html.ios-viewport-managed:not(.landscape-mode) .container {
 .machine-import-dialog :is(h2, p, dt, dd, button) {
   -webkit-user-select: none; user-select: none;
 }
+
+/* v46: ヘッダーは1段。機種名と下向き三角だけを中央に配置する。 */
+.app-header-inner {
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
+}
+.app-header-inner > .machine-header-row {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: auto;
+  max-width: min(360px, calc(100vw - 188px));
+  min-width: 0;
+  height: 42px;
+  margin: 0;
+  padding: 0;
+}
+.app-header-inner > .machine-header-row #machine-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  height: 42px;
+  margin: 0;
+  padding: 0 22px 0 3px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline-offset: 2px;
+  color: var(--text, #222);
+  font: inherit;
+  font-size: clamp(14px, 3.9vw, 18px);
+  font-weight: 700;
+  text-align: center;
+  text-align-last: center;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.app-header-inner .machine-chevron {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-25%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid currentColor;
+  pointer-events: none;
+  color: var(--text, #222);
+}
+.landscape-mode .app-header-inner > .machine-header-row {
+  height: 36px;
+  max-width: min(360px, calc(100dvh - 190px));
+  margin: 0;
+}
+.landscape-mode .app-header-inner > .machine-header-row #machine-switch { height: 36px; }
+
+/* 設定一覧から機種設定専用画面へ遷移する。 */
+.settings-machine-open {
+  width: 100%;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.settings-machine-open-arrow { font-size: 28px; font-weight: 400; line-height: 1; }
+.settings-machine-detail { min-width: 0; }
+.settings-machine-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.settings-machine-detail-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text, #222);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.settings-machine-detail > .machine-settings-group { margin-bottom: 0; }
