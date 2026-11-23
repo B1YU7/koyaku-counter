@@ -35,10 +35,19 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
 
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="ui-components.css">
+  <link rel="stylesheet" href="responsive-layout.css">
+  <link rel="stylesheet" href="ui-details.css">
   <link rel="stylesheet" href="theme.css">
 
   <script src="theme.js" defer></script>
+  <script src="machine.js" defer></script>
   <script src="script.js" defer></script>
+  <script src="count-history.js" defer></script>
+  <script src="counter-ui.js" defer></script>
+  <script src="settings-ui.js" defer></script>
+  <script src="probability.js" defer></script>
+  <script src="app-init.js" defer></script>
 </head>
 
 <body>
@@ -193,10 +202,10 @@
               <button type="button" data-formula-op="*" aria-label="乗算"><svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true" focusable="false"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
               <button type="button" data-formula-op="/" aria-label="除算"><svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true" focusable="false"><path d="M5 12h14"/><circle cx="12" cy="5" r="1.35" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.35" fill="currentColor" stroke="none"/></svg></button>
             </div>
-            <!-- 2行目：総ゲーム数・小役・数値入力欄 -->
+            <!-- 2行目：参照項目（総ゲーム数・小役）と数値入力欄 -->
             <div class="probability-value-row">
-              <button type="button" id="probability-games" class="probability-value-button">総ゲーム数</button>
-              <button type="button" id="probability-counter" class="probability-value-button" aria-expanded="false">小役</button>
+              <button type="button" id="probability-counter" class="probability-value-button"
+                      aria-expanded="false" aria-controls="probability-counter-menu">参照項目</button>
               <form id="probability-number-form" class="probability-number-form" novalidate>
                 <div class="probability-fixed-controls">
                   <input type="text" id="probability-number-input" aria-label="数値を入力" inputmode="decimal" maxlength="16"

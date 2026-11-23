@@ -1,0 +1,739 @@
+/* =====================================================
+   v38: 区切り線・並び替え・色選択・モード詳細・入力補助
+===================================================== */
+/* 項目名と内容の間だけ、テーマに追従する区切り線を入れる。 */
+.common-counter-area > .counter-area-heading {
+  border-bottom: 1px solid var(--border, #ddd);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+.counter-settings-heading,
+.mode-settings-heading,
+.probability-list-heading {
+  border-bottom: 1px solid var(--border, #ddd);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+.settings-accordion-toggle[aria-expanded="true"] {
+  border-bottom: 1px solid var(--border, #ddd);
+  border-radius: 12px 12px 0 0;
+}
+/* モードの詳細画面は小役見出し内の区切り線を共有する。 */
+
+/* 確率項目にも小役・モードと同じ選択＋共通上下ボタンを用意。 */
+.probability-list-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: var(--text, #222);
+  font-size: 15px;
+  font-weight: bold;
+}
+#probability-reorder-controls { margin-left: auto; }
+.probability-item-name-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+.probability-item-name-row .probability-item-name { flex: 1; min-width: 0; }
+/* 各カスタム計算の編集ボタンは項目の右上へ。狭い画面でも押せる幅を維持。 */
+.probability-item-name-row .probability-item-actions {
+  flex: 0 0 auto;
+  margin: 0 0 0 auto;
+}
+.probability-item.selected { border-color: var(--text, #222); }
+/* 手動横表示の計算項目一覧だけ2列で表示。編集画面は変更しない。 */
+.landscape-mode #probability-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* 7つの色系統＋グレー1列、7段階の明暗。横スクロール不要。 */
+.color-matrix {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 5px;
+  padding: 3px 1px 5px;
+  overflow: visible;
+}
+.matrix-swatch { min-height: 26px; }
+@media (max-width: 400px) { .color-matrix { gap: 4px; } }
+/* 操作した行と画面の空き位置に応じて上側にも表示できる。 */
+.color-picker-panel.open-up {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+/* モード一覧では「編集」ボタンと長押し削除を使用しない。 */
+.settings-mode-detail-header { gap: 8px; }
+.mode-detail-name-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.mode-detail-name-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 40px;
+  padding: 6px 8px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  background: var(--input-bg, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+.settings-mode-delete {
+  flex: 0 0 auto;
+  height: 40px;
+  padding: 7px 10px;
+  border: 1px solid #bf4e4e;
+  border-radius: 8px;
+  background: transparent;
+  color: #bf4e4e;
+  font: inherit;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
+/* 小役名：編集欄の右側の×で一括消去。 */
+.setting-name-edit {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 46px;
+  align-items: center;
+}
+.setting-name-edit .setting-input {
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  padding-right: 30px;
+}
+.setting-name-clear {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-soft, #eee);
+  color: var(--muted, #666);
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  line-height: 1;
+  font-size: 19px;
+  cursor: pointer;
+}
+.setting-name-edit:focus-within .setting-name-clear:not([hidden]) { display: grid; }
+
+/* カラーパネルの開いている行を前面に出して隣の行に隠れないようにする。 */
+.setting-item:has(.color-picker-panel:not([hidden])) {
+  position: relative;
+  z-index: 30;
+}
+
+
+/* =====================================
+   設定判別：計算式への数値の直接入力
+===================================== */
+.probability-number-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  min-width: 0;
+}
+.probability-number-form label {
+  flex: 0 0 auto;
+  color: var(--text, #222);
+  font-size: 14px;
+  font-weight: 700;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.probability-number-form input {
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  background: var(--input-bg, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 16px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.probability-number-form button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 7px 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.probability-number-error {
+  margin: 5px 0 0;
+  color: #d9534f;
+  font-size: 13px;
+}
+
+/* =====================================
+   v41: 機種選択と機種管理
+   ヘッダー中央のタブ名・回転・リセットは従来どおりに保つ。
+===================================== */
+.machine-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin: 6px auto 0;
+  width: min(100%, 900px);
+  min-width: 0;
+  color: var(--text, #222);
+  font-size: 13px;
+  font-weight: 600;
+}
+.machine-header-row label { flex: none; }
+#machine-switch {
+  min-width: 0;
+  width: min(55vw, 310px);
+  max-width: 100%;
+  height: 33px;
+  padding: 3px 26px 3px 10px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  background: var(--input-bg, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+.machine-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  min-width: 0;
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+}
+.machine-settings-group h2 {
+  margin: 0 0 2px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--border, #ddd);
+  font-size: 16px;
+}
+.machine-settings-group label { font-size: 13px; font-weight: 600; }
+#machine-name-input {
+  width: 100%;
+  min-height: 43px;
+  padding: 9px 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  background: var(--input-bg, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 16px;
+}
+.machine-settings-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.machine-add-button { flex: 1 1 130px; background: #29865b; }
+.machine-delete-button {
+  flex: 1 1 130px;
+  min-height: 44px;
+  padding: 9px;
+  border: 1px solid #c84a4a;
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  color: #c84a4a;
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+.machine-delete-button:disabled { opacity: .45; cursor: not-allowed; }
+.machine-export-button,
+.machine-import-button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  background: var(--surface-soft, #f8f8f8);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.machine-export-button:active,
+.machine-import-button:active { opacity: .8; }
+.machine-settings-note { color: var(--muted, #666); font-size: 12px; margin: 0; }
+/* 固定ラベルは選択不可。機種名入力欄は編集・文字選択可能のまま。 */
+.machine-header-row label,
+.machine-settings-group :is(h2, label, button, p) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+@media (max-width: 370px) {
+  .machine-header-row { gap: 6px; }
+  #machine-switch { width: min(68vw, 290px); }
+}
+.landscape-mode .machine-header-row {
+  margin-top: 3px;
+  font-size: 12px;
+}
+.landscape-mode #machine-switch { height: 29px; }
+
+/* v41：機種別の表示設定と全体設定を別の枠に分ける */
+.display-settings-group {
+  grid-template-rows: auto repeat(4, minmax(min-content, 1fr)) 104px;
+}
+.machine-display-heading,
+.global-settings-group h2 {
+  margin: 0;
+  padding: 12px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text, #222);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.global-settings-group {
+  min-width: 0;
+  margin: 20px 0;
+  padding: 0 15px 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+}
+.global-settings-group h2 { border-bottom: 1px solid var(--border, #ddd); }
+.global-settings-group .theme-setting {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 15px 0;
+  border: 0;
+  background: transparent;
+}
+.global-settings-group .theme-toggle { width: min(50%, 180px); flex: 0 1 180px; min-width: 0; }
+.global-settings-group .theme-option { flex: 1 1 0; min-width: 0; padding-left: 4px; padding-right: 4px; }
+.global-settings-group .theme-setting-label { white-space: nowrap; }
+.global-settings-group p { margin: 0; color: var(--muted, #666); font-size: 12px; }
+@media (max-width: 420px) {
+  .global-settings-group .theme-toggle { width: 155px; flex: 0 1 155px; }
+  .global-settings-group .theme-setting-label { font-size: 13px; }
+}
+
+/* ヘッダーの既存flex横並びを縦並びにし、タイトルの中央位置を保持する。 */
+.app-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+/* v45: プリセット読み込み。ダイアログは固定ヘッダーやタブより手前に表示。 */
+.machine-import-dialog {
+  box-sizing: border-box;
+  width: min(92vw, 480px);
+  max-width: 480px;
+  max-height: min(85dvh, 720px);
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, .24);
+}
+.machine-import-dialog::backdrop { background: rgba(0, 0, 0, .6); }
+.machine-import-dialog h2 { margin: 0 0 10px; font-size: 18px; }
+.machine-import-dialog p { margin: 8px 0; font-size: 13px; line-height: 1.6; }
+.machine-import-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 48dvh;
+  overflow: auto;
+  padding: 12px;
+  margin: 12px 0;
+  background: var(--surface-soft, #f8f8f8);
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.machine-import-preview dl { display: grid; grid-template-columns: 92px minmax(0, 1fr); margin: 0; gap: 8px; }
+.machine-import-preview dt { font-weight: bold; color: var(--muted, #666); }
+.machine-import-preview dd { margin: 0; white-space: pre-wrap; }
+.machine-import-preview .machine-import-details { margin: 0; padding-top: 8px; border-top: 1px solid var(--border, #ddd); }
+.machine-import-warning { color: var(--muted, #666); }
+.machine-import-actions { display: flex; gap: 10px; margin-top: 16px; }
+.machine-import-actions button {
+  flex: 1; min-width: 0; min-height: 44px; border-radius: 9px;
+  border: 1px solid var(--border, #ddd); padding: 10px 8px;
+  font: inherit; font-size: 13px; font-weight: bold; cursor: pointer;
+}
+.machine-import-cancel { color: var(--text, #222); background: var(--surface-soft, #eee); }
+.machine-import-confirm { color: #fff; background: #287b54; border-color: #287b54 !important; }
+.machine-import-actions button:disabled { opacity: .5; cursor: default; }
+.machine-import-dialog :is(h2, p, dt, dd, button) {
+  -webkit-user-select: none; user-select: none;
+}
+
+/* v46: ヘッダーは1段。機種名と下向き三角だけを中央に配置する。 */
+.app-header-inner {
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
+}
+.app-header-inner > .machine-header-row {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: auto;
+  max-width: min(360px, calc(100vw - 188px));
+  min-width: 0;
+  height: 42px;
+  margin: 0;
+  padding: 0;
+}
+.app-header-inner > .machine-header-row #machine-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  height: 42px;
+  margin: 0;
+  padding: 0 22px 0 3px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline-offset: 2px;
+  color: var(--text, #222);
+  font: inherit;
+  font-size: clamp(14px, 3.9vw, 18px);
+  font-weight: 700;
+  text-align: center;
+  text-align-last: center;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.app-header-inner .machine-chevron {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-25%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid currentColor;
+  pointer-events: none;
+  color: var(--text, #222);
+}
+.landscape-mode .app-header-inner > .machine-header-row {
+  height: 36px;
+  max-width: min(360px, calc(100dvh - 190px));
+  margin: 0;
+}
+.landscape-mode .app-header-inner > .machine-header-row #machine-switch { height: 36px; }
+
+/* 設定一覧から機種設定専用画面へ遷移する。 */
+.settings-machine-open {
+  width: 100%;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.settings-machine-open-arrow { font-size: 28px; font-weight: 400; line-height: 1; }
+.settings-machine-detail { min-width: 0; }
+.settings-machine-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.settings-machine-detail-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text, #222);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.settings-machine-detail > .machine-settings-group { margin-bottom: 0; }
+
+/* 機種一覧はモード・小役と同様に、丸い選択欄と右上の上下移動を使う。 */
+.machine-settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border, #ddd);
+  padding-bottom: 12px;
+  margin-bottom: 3px;
+}
+.machine-settings-heading h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #222);
+}
+.machine-settings-heading > .always-move-controls {
+  margin-left: auto;
+  gap: 6px;
+}
+.machine-settings-heading .always-move-button {
+  width: 40px;
+  height: 40px;
+  flex-basis: 40px;
+  font-size: 22px;
+}
+.machine-settings-list { display: flex; flex-direction: column; min-width: 0; }
+.machine-settings-item { border-bottom: 1px solid var(--border, #ddd); min-width: 0; }
+.machine-settings-item:last-child { border-bottom: none; }
+.machine-settings-item.selected { background: var(--surface-soft,#f8f8f8); border-radius: 8px; }
+.machine-settings-row { display: flex; align-items: center; gap: 10px; min-height: 64px; }
+.machine-row-toggle { flex: 1 1 auto; min-width: 0; }
+.machine-settings-group > .machine-add-button { flex: none; width: 100%; }
+#machine-settings-overview { display: flex; flex-direction: column; gap: 16px; }
+#machine-settings-overview[hidden], #machine-edit-detail[hidden] { display: none !important; }
+.machine-settings-group label { -webkit-user-select: none; user-select: none; }
+@media(max-width: 400px) { .machine-settings-row { gap: 7px; } }
+
+.machine-settings-heading, .machine-settings-item .mode-row-name { -webkit-user-select: none; user-select: none; }
+#machine-settings-overview > .machine-settings-group { margin-bottom: 0; }
+
+/* =====================================
+   v51: 数式作成ボタンの4行配置と設定差
+===================================== */
+/* 1行目: （ ） ＋ － × ÷ の6列。左右を均等に配置する。 */
+.probability-keypad {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+.probability-keypad button {
+  padding-inline: 0;
+}
+/* 2行目: 参照項目（総ゲーム数・小役）と数値入力欄 */
+.probability-value-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  align-items: stretch;
+  gap: 7px;
+  margin-top: 9px;
+}
+.probability-value-row > button {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
+  padding: 5px 2px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.probability-number-form {
+  box-sizing: border-box;
+  min-width: 0;
+  height: 56px;
+  min-height: 56px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+.probability-fixed-controls {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  gap: 3px;
+}
+.probability-fixed-controls input {
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
+  padding: 4px 3px;
+  text-align: center;
+  font-size: 16px;
+}
+.probability-fixed-controls button {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
+  padding: 3px 5px;
+  font-size: 12px;
+}
+.probability-diff-editor { margin-top: 9px; }
+.probability-diff-toggle {
+  width: 100%;
+  box-sizing: border-box;
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  background: var(--surface-soft, #f8f8f8);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.probability-diff-toggle .accordion-chevron { font-size: 19px; line-height: 1; }
+.probability-diff-toggle[aria-expanded="true"] .accordion-chevron { transform: rotate(180deg); }
+.probability-diff-inputs {
+  margin-top: 6px;
+  padding: 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  background: var(--surface-soft, #f8f8f8);
+}
+.probability-diff-input-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.probability-diff-input { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.probability-diff-input span { font-size: 13px; font-weight: 700; }
+.probability-diff-input input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #ddd);
+  background: var(--input-bg, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 16px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.probability-edit-tools { margin-top: 9px; }
+.probability-item-diff-toggle {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 11px;
+  padding: 7px 11px;
+  text-align: left;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  background: var(--surface-soft, #f8f8f8);
+  color: var(--text, #222);
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.probability-item-diff-toggle::after { content: "⌄"; float: right; font-size: 16px; }
+.probability-item-diff-toggle[aria-expanded="true"]::after { content: "⌃"; }
+.probability-item-diff-body { margin-top: 5px; }
+.probability-item-diff-list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-soft, #f8f8f8);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.probability-item-diff-list dt, .probability-item-diff-list dd {
+  margin: 0;
+  padding: 8px 10px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border, #ddd);
+}
+.probability-item-diff-list dt { font-weight: 700; }
+.probability-item-diff-list dt:nth-last-child(2), .probability-item-diff-list dd:last-child { border-bottom: 0; }
+@media (max-width: 380px) {
+  .probability-value-row { gap: 4px; }
+  .probability-fixed-controls { gap: 2px; }
+  .probability-fixed-controls button { padding-inline: 3px; }
+  .probability-keypad { gap: 4px; }
+}
+
+/* v56: 総ゲーム数も参照項目メニューの先頭から選択する。 */
+.probability-counter-menu > .probability-games-choice {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px;
+  font-weight: 600;
+  text-align: center;
+}

@@ -1,0 +1,463 @@
+/* =====================================================
+   更新：小役名は枠なし。並び替えは通常画面の上下ボタンから。
+   削除は長押し／右クリックの専用操作。
+===================================================== */
+.setting-name-row .setting-input {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text, #222);
+  padding: 9px 2px;
+  box-shadow: none;
+  outline: none;
+}
+.setting-name-row .setting-input:focus {
+  border: 0;
+  outline: none;
+  background: var(--surface-soft,#f7f7f7);
+  border-radius: 4px;
+}
+.setting-item, .mode-settings-item { position: relative; }
+.always-move-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+.always-move-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 31px;
+  width: 31px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--border,#ddd);
+  border-radius: 7px;
+  background: var(--surface-soft,#f7f7f7);
+  color: var(--text,#222);
+  font: inherit;
+  font-size: 19px;
+  cursor: pointer;
+}
+.always-move-button:disabled { opacity: .32; cursor: default; }
+.gesture-row { touch-action: pan-y; -webkit-touch-callout: none; }
+.gesture-context-menu {
+  position: absolute;
+  top: calc(100% - 8px);
+  right: 6px;
+  min-width: 132px;
+  padding: 5px;
+  background: var(--surface,#fff);
+  border: 1px solid var(--border,#ddd);
+  box-shadow: 0 4px 22px #0003;
+  border-radius: 10px;
+  z-index: 100;
+}
+.gesture-context-menu[hidden] { display: none !important; }
+.gesture-context-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 15px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: #d9534f;
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+.gesture-context-menu button:focus-visible { outline: 2px solid currentColor; }
+/* 共通カウンター／モードの既存の20px間隔は変えない */
+
+/* ヘッダー左端の手動横表示ボタン（4タブ共通） */
+.rotate-layout-button {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 43px;
+  height: 40px;
+  border: 1px solid var(--border,#ddd);
+  border-radius: 9px;
+  background: var(--surface-soft,#f7f7f7);
+  color: var(--text,#222);
+  font: inherit;
+  font-size: 24px;
+  cursor: pointer;
+}
+/* 画面回転を示すスマートフォン＋矢印のアイコン */
+.rotate-layout-icon {
+  width: 25px;
+  height: 25px;
+  display: block;
+  flex: none;
+  pointer-events: none;
+}
+/* 手動横表示では、縦表示に戻る向きを示すためアイコンだけ左右反転する。 */
+.landscape-mode .rotate-layout-icon {
+  transform: scaleX(-1);
+}
+.app-header-inner h1 { grid-row: 1; }
+.app-header-inner .header-actions { grid-row: 1; }
+
+/* =====================================================
+   手動横表示：端末が縦向きのままでもアプリを90度回し、
+   iPhoneの上側を左にして使える（CSS上は時計回りに回転）。
+   Safariの画面回転制御APIは使用しない。
+===================================================== */
+.landscape-mode body { overflow: hidden; }
+.landscape-mode .container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vh;
+  width: 100dvh;
+  height: 100vw;
+  height: 100dvw;
+  margin: 0;
+  max-width: none;
+  transform-origin: top left;
+  transform: translateX(100vw) rotate(90deg);
+  transform: translateX(100dvw) rotate(90deg);
+}
+.landscape-mode .app-header {
+  padding: 6px 12px;
+}
+.landscape-mode .app-header-inner {
+  min-height: 36px;
+  max-width: none;
+}
+.landscape-mode .bottom-tabs {
+  padding: 3px 10px;
+}
+.landscape-mode .bottom-tabs-inner { max-width: none; }
+.landscape-mode .tab-button { min-height: 40px; gap: 1px; padding: 2px; }
+.landscape-mode .tab-icon { font-size: 17px; }
+.landscape-mode .tab-label { font-size: 11px; }
+.landscape-mode .content-inner {
+  max-width: none;
+  width: 96%;
+  padding: 10px 0 15px;
+}
+.landscape-mode .counter-landscape-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  min-width: 0;
+}
+.landscape-mode .counter-work-area {
+  min-width: 0;
+  width: 100%;
+  /* 左右2分割を解除し、カウンターの下に履歴を置く。 */
+  max-height: none;
+  overflow: visible;
+  padding: 0 5px 12px;
+}
+.landscape-mode .count-history-section {
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+  padding: 10px;
+}
+.landscape-mode .count-history-current { display: block; }
+.landscape-mode .count-history-heading { gap: 4px; margin-bottom: 7px; }
+.landscape-mode .count-history-heading h2 { font-size: 15px; }
+.landscape-mode .count-history-actions { width: 100%; gap: 6px; }
+.landscape-mode .count-history-button { min-height: 32px; padding: 4px; font-size: 12px; }
+/* 横表示は最新の確定履歴だけを表示し、過去・Undo済み履歴は隠す。 */
+.landscape-mode .count-history-table-wrap { display: none; }
+.landscape-mode #count-history-more { display: none !important; }
+.landscape-mode .count-history-table { font-size: 11px; }
+.landscape-mode .count-history-table th,
+.landscape-mode .count-history-table td { padding: 6px 3px; }
+.landscape-mode .counter-list {
+  /* 回転後の表示幅に合わせ、6列でも折り返さない範囲で68pxを維持。 */
+  --counter-size: min(68px, calc((100cqi - 18px - 5 * var(--counter-gap)) / 6));
+  row-gap: 6px;
+}
+.landscape-mode .total-games-row { margin: 8px 0 14px; }
+.landscape-mode .count-mode-row { margin-bottom: 10px; }
+.landscape-mode .common-counter-area { margin-bottom: 12px; }
+.landscape-mode .common-counter-area:not([hidden]):has(+ .mode-counter-area > .counter-mode-tabs:not([hidden])) { margin-bottom: 22px; }
+.landscape-mode .counter-mode-tabs { margin-top: 9px; margin-bottom: 12px; }
+.landscape-mode .memo-input { min-height: 175px; }
+/* native dialogは最上位レイヤーなので本体と別に回転させる */
+.landscape-mode .count-edit-dialog[open] {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  margin: 0;
+  width: min(290px, calc(100dvh - 26px));
+  max-height: calc(100dvh - 15px);
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+/* 手動横表示中は見た目の縦スクロールに合わせてタッチ操作を許可 */
+.landscape-mode .gesture-row { touch-action: pan-x; }
+
+/* =====================================================
+   絵文字は使わず、全タブとテーマ切替の線画アイコンを統一
+===================================================== */
+.ui-line-icon {
+  display: block;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  color: inherit;
+  pointer-events: none;
+}
+.tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tab-icon .ui-line-icon { width: 22px; height: 22px; }
+.theme-setting .theme-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.theme-setting .theme-option .ui-line-icon { width: 17px; height: 17px; }
+.landscape-mode .tab-icon .ui-line-icon { width: 18px; height: 18px; }
+
+/* =====================================================
+   画面の横スクロール防止
+   ・縦表示は縦スクロールのみ
+   ・手動横表示では、90度回転後の縦方向のみスクロール
+   ・モード切替タブは行折り返しにして、スクロールなしでも全件選べる
+===================================================== */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+}
+/* 回転して表示している間は、物理画面の左右方向がアプリの縦方向になる。 */
+html.landscape-mode,
+html.landscape-mode body {
+  touch-action: pan-x;
+}
+.container,
+.app-content,
+.content-inner,
+.tab-panel {
+  max-width: 100%;
+  min-width: 0;
+  overscroll-behavior-x: none;
+}
+/* スライド式の見た目を残し、モード数が増えたときは折り返す。 */
+.counter-mode-tabs {
+  flex-wrap: wrap;
+  overflow-x: hidden;
+  scroll-snap-type: none;
+  scrollbar-width: none;
+}
+.counter-mode-tab { scroll-snap-align: none; }
+/* 履歴の横スクロールは禁止。表は既存の固定列幅で収める。 */
+.count-history-table-wrap { overflow-x: hidden; }
+
+/* =====================================================
+   スマートフォンの表示設定：列数・形状・テーマはラベルと操作欄を1行に。
+   文字サイズはラベルと5択を別行にし、選択肢自体は1列のまま。
+   以前の max-width:400/480px の縦積み指定より後に記述して上書きする。
+===================================================== */
+@media (max-width: 700px) {
+  .display-settings-group > .column-setting,
+  .display-settings-group > .shape-setting,
+  .display-settings-group > .theme-setting {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .display-settings-group .column-setting-label,
+  .display-settings-group .shape-setting-label,
+  .display-settings-group .theme-setting-label {
+    flex: 0 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  .display-settings-group .column-setting .column-select {
+    flex: 0 0 88px;
+    width: 88px;
+    min-width: 0;
+    max-width: 88px;
+  }
+
+  .display-settings-group .shape-setting .theme-toggle,
+  .display-settings-group .theme-setting .theme-toggle {
+    flex: 0 1 155px;
+    width: 155px;
+    min-width: 108px;
+    max-width: 155px;
+  }
+
+  .display-settings-group .shape-setting .theme-option,
+  .display-settings-group .theme-setting .theme-option {
+    padding-left: 2px;
+    padding-right: 2px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .display-settings-group > .number-size-setting {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 9px;
+  }
+  .display-settings-group .font-size-options {
+    width: 100%;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* =====================================================
+   iOS 27 ホーム画面PWA: 上端のシステムブラー対策
+   ・11pxの固定要素を最上部に置いてWebKitの判定に対応
+   ・background-clip:text と空要素により画面には描画しない
+   ・既存ヘッダーの高さ・位置、タップ操作には影響させない
+   ・通常のブラウザーでは適用しない
+   ※ Apple公式APIではないためiPhone実機での効果確認が必要
+===================================================== */
+@media (display-mode: standalone) {
+  @supports (-webkit-touch-callout: none) {
+    .ios-pwa-top-blur-fix {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 11px;
+      z-index: 9999;
+      pointer-events: none;
+      background-color: var(--surface, #fff);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+  }
+}
+
+/* =====================================
+   カウンター画面の表示専用ラベルを文字選択・ドラッグさせない。
+   総ゲーム数の入力欄や設定の小役名入力欄は対象外。
+===================================== */
+.counter-item .title,
+.total-games-row label,
+.total-games-unit,
+.counter-area-heading,
+.probability-counter-heading,
+.count-mode-control,
+.count-mode-control > span {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+/* =====================================
+   表示設定の見出し・選択肢・数値見本は文字選択させない。
+   列数プルダウンや設定ボタンの操作は従来どおり有効。
+===================================== */
+.display-settings-group,
+.display-settings-group :where(label, span, button, select, option) {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+
+/* =====================================
+   設定・設定判別・カウンター長押しダイアログの表示専用文字を選択させない。
+   モード名、小役名、計算式、結果、見出し、通番などの表示部分が対象。
+   入力可能なテキスト欄は選択・編集を維持する。
+===================================== */
+#settings-screen,
+#probability-screen,
+#count-edit-dialog {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+#settings-screen :is(input, textarea, [contenteditable="true"]),
+#probability-screen :is(input, textarea, [contenteditable="true"]),
+#count-edit-dialog :is(input, textarea, [contenteditable="true"]) {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* メモ・項目名のプレースホルダーは表示専用。入力済みの文章は選択可能。 */
+#memo-input::placeholder,
+#probability-name::placeholder {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* iPhone / iPad の縦表示では、通常時だけ可視領域へアプリ枠を合わせる。
+   キーボード表示中は直前の枠サイズを保持して、下部タブがキーボード上に
+   持ち上がらないようにする（キーボードに隠れるのは正常な挙動）。 */
+html.ios-viewport-managed:not(.landscape-mode) .container {
+  position: fixed;
+  top: var(--app-visual-top, 0px);
+  left: var(--app-visual-left, 0px);
+  width: var(--app-visual-width, 100%);
+  height: var(--app-visual-height, 100dvh);
+}
+
+/* =====================================================
+   v25: 左の丸で小役・モードを選択、右上の共通上下ボタンで並び替える。
+   入力欄の編集・色変更・長押し削除は従来どおり。
+===================================================== */
+.counter-settings-heading > .always-move-controls,
+.mode-settings-heading > .always-move-controls {
+  margin-left: auto;
+  gap: 6px;
+}
+.counter-settings-heading > .always-move-controls .always-move-button,
+.mode-settings-heading > .always-move-controls .always-move-button {
+  width: 40px;
+  height: 40px;
+  flex-basis: 40px;
+  font-size: 22px;
+}
+.reorder-select {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  margin: 0 2px 0 0;
+  accent-color: #2469da;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.setting-item.selected,
+.mode-settings-item.selected {
+  background: var(--surface-soft, #f8f8f8);
+  border-radius: 8px;
+}
+@media (max-width: 400px) {
+  .setting-name-row { gap: 5px; }
+  .setting-number { flex-basis: 21px; min-width: 21px; }
+  .mode-settings-row { gap: 7px; }
+  .mode-rename-button { padding: 8px 6px; }
+}
+
+/* モード切替はモード専用カウンターの角丸カード内に配置する。 */
+.mode-counter-area > .counter-mode-tabs { margin-top: 0; margin-bottom: 18px; }
+.landscape-mode .mode-counter-area > .counter-mode-tabs { margin-top: 0; margin-bottom: 12px; }
+
