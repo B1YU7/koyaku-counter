@@ -98,6 +98,20 @@ function renderMachineSelect() {
   });
   select.value = activeMachineId;
   select.title = getActiveMachine()?.name || "機種";
+  // 書き出し対象は現在の機種と独立。名前変更・並び替え後も選択を保持する。
+  const exportSelect = document.getElementById("machine-export-target");
+  if (exportSelect) {
+    const previouslySelected = exportSelect.value;
+    exportSelect.replaceChildren();
+    machines.forEach(machine => {
+      const option = document.createElement("option");
+      option.value = machine.id;
+      option.textContent = machine.name.trim() || "名前なし";
+      exportSelect.appendChild(option);
+    });
+    exportSelect.value = machines.some(item => item.id === previouslySelected)
+      ? previouslySelected : activeMachineId;
+  }
 }
 // 機種の並び替え対象と編集対象は、現在カウントしている機種と独立して管理する。
 // (editingMachineId / reorderSelectedMachineId は設定画面の状態として後方で宣言。)
@@ -272,7 +286,7 @@ function initMachineControls() {
       window.alert("機種を追加できませんでした。保存領域を確認してください。");
     }
   });
-  exportButton.addEventListener("click", exportCurrentMachinePreset);
+  exportButton.addEventListener("click", exportSelectedMachinePreset);
   initMachineImportControls();
   deleteButton.addEventListener("click", deleteEditingMachine);
 }
@@ -281,12 +295,103 @@ function initMachineControls() {
 // 機種プリセットのエクスポート（構成のみ、利用データは含めない）
 // 取り込み時に新しいIDを採番できるよう、ファイル内の参照IDは通し番号にする。
 // ===================================
-function buildCurrentMachinePreset() {
-  const machine = getActiveMachine();
-  if (!machine) throw new Error("選択中の機種が見つかりません。");
+// 異なる機種のエクスポートはその機種の保存領域を直接読む。
+// activeMachineIdや画面の値は一切変更しない。
+function readMachinePresetSource(machineId) {
+  if (machineId === activeMachineId) {
+    return { modes, counters, calculations: probabilityItems,
+      portraitColumns: portraitColumnCount, landscapeColumns: landscapeColumnCount,
+      buttonShape: counterList.dataset.shape === "circle" ? "circle" : "square",
+      countFontSize };
+  }
+  const read = key => localStorage.getItem(`${MACHINE_DATA_PREFIX}${machineId}:${key}`);
+  const parseArray = (key, fallback, label) => {
+    const raw = read(key);
+    if (raw === null) return fallback;
+    let parsed;
+    try { parsed = JSON.parse(raw); }
+    catch (_) { throw new Error(`${label}の保存データが壊れています。`); }
+    if (!Array.isArray(parsed)) throw new Error(`${label}の形式が正しくありません。`);
+    return parsed;
+  };
+  const savedModes = parseArray(MODE_STORAGE_KEY,
+    [{ id: DEFAULT_MODE_ID, name: "モード1" }], "モード");
+  const modeIds = new Set();
+  for (const mode of savedModes) {
+    if (!mode || typeof mode.id !== "string" || !/^mode-[a-z0-9-]+$/i.test(mode.id) ||
+        modeIds.has(mode.id) || typeof mode.name !== "string") {
+      throw new Error("モードの保存データが正しくありません。");
+    }
+    modeIds.add(mode.id);
+  }
+  const decode = raw => {
+    const saved = JSON.parse(raw);
+    if (!Array.isArray(saved) || !saved.length || saved.length > 500) throw new Error("小役の保存形式が正しくありません。");
+    const seen = new Set();
+    return saved.map((item, index) => {
+      // 最初期の数値だけの配列も、現在の表示と同じように扱う。
+      if (Number.isSafeInteger(item) && item >= 0) {
+        return { id: `counter-legacy-${index + 1}`, name: `カウンター ${index + 1}`,
+          color: DEFAULT_COUNTER_COLOR, modeId: modeIds.has(DEFAULT_MODE_ID) ? DEFAULT_MODE_ID : (savedModes[0]?.id || COMMON_MODE_ID) };
+      }
+      if (!item || typeof item !== "object" || !Number.isSafeInteger(item.count) || item.count < 0 ||
+          typeof item.id !== "string" || !/^counter-[a-z0-9-]+$/i.test(item.id) ||
+          seen.has(item.id) || typeof item.name !== "string") throw new Error("小役の保存データが正しくありません。");
+      seen.add(item.id);
+      return { id: item.id, name: item.name.slice(0, 30),
+        color: normalizeHex(item.color || "") || DEFAULT_COUNTER_COLOR,
+        modeId: item.modeId === COMMON_MODE_ID || modeIds.has(item.modeId)
+          ? item.modeId : (savedModes[0]?.id || COMMON_MODE_ID) };
+    });
+  };
+  const primary = read(STORAGE_KEY);
+  const recovery = read(COUNTER_RECOVERY_KEY);
+  let savedCounters;
+  if (primary === null && recovery === null) {
+    const history = read("counterHistoryV1");
+    if (history !== null && history !== "" && history !== '{"past":[],"future":[]}')
+      throw new Error("カウント履歴はありますが小役データを読み取れません。");
+    savedCounters = [{ id: "counter-default", name: "カウンター 1",
+      color: DEFAULT_COUNTER_COLOR, modeId: savedModes[0]?.id || COMMON_MODE_ID }];
+  } else {
+    try { savedCounters = decode(primary ?? recovery); }
+    catch (error) {
+      if (recovery === null || primary === null) throw new Error("小役データを読み取れませんでした。", { cause: error });
+      try { savedCounters = decode(recovery); }
+      catch (_) { throw new Error("小役の保存データと控えの両方を読み取れませんでした。"); }
+    }
+  }
+  const savedCalculations = parseArray(PROBABILITY_STORAGE_KEY, [], "カスタム計算");
+  for (const item of savedCalculations) {
+    if (!item || typeof item.name !== "string" || !Array.isArray(item.tokens) ||
+        item.tokens.length > MAX_FORMULA_TOKENS || !item.tokens.every(validFormulaToken)) {
+      throw new Error("カスタム計算の保存データが正しくありません。");
+    }
+  }
+  const columns = (key, maximum) => {
+    const raw = read(key) ?? read(LEGACY_COLUMN_STORAGE_KEY);
+    const value = Number(raw);
+    return raw !== null && Number.isInteger(value) && value >= 1
+      ? Math.min(value, maximum) : DEFAULT_COLUMNS;
+  };
+  const rawFont = read(COUNT_FONT_SIZE_KEY);
+  const fontNumber = Number(rawFont);
+  const savedFontSize = rawFont === null ? 32 : ALLOWED_FONT_SIZES.reduce((near, size) =>
+    Math.abs(size - fontNumber) < Math.abs(near - fontNumber) ? size : near, 32);
+  return { modes: savedModes, counters: savedCounters, calculations: savedCalculations,
+    portraitColumns: columns(PORTRAIT_COLUMN_STORAGE_KEY, 4),
+    landscapeColumns: columns(LANDSCAPE_COLUMN_STORAGE_KEY, 6),
+    buttonShape: read(SHAPE_STORAGE_KEY) === "circle" ? "circle" : "square",
+    countFontSize: savedFontSize };
+}
+
+function buildCurrentMachinePreset(machineId = activeMachineId) {
+  const machine = machines.find(item => item.id === machineId);
+  if (!machine) throw new Error("エクスポートする機種が見つかりません。");
+  const source = readMachinePresetSource(machineId);
 
   const modeIds = new Map();
-  const exportedModes = modes.map((mode, index) => {
+  const exportedModes = source.modes.map((mode, index) => {
     if (modeIds.has(mode.id)) throw new Error("モードの識別子が重複しています。");
     const id = `mode-${index + 1}`;
     modeIds.set(mode.id, id);
@@ -294,7 +399,7 @@ function buildCurrentMachinePreset() {
   });
 
   const counterIds = new Map();
-  const exportedCounters = counters.map((counter, index) => {
+  const exportedCounters = source.counters.map((counter, index) => {
     if (counterIds.has(counter.id)) throw new Error("小役の識別子が重複しています。");
     const id = `counter-${index + 1}`;
     counterIds.set(counter.id, id);
@@ -311,7 +416,7 @@ function buildCurrentMachinePreset() {
 
   // 削除済み小役を参照する式も残す。参照先がない状態は取り込み後も保持する。
   const missingIds = new Map();
-  const exportedCalculations = probabilityItems.map(item => ({
+  const exportedCalculations = source.calculations.map(item => ({
     name: item.name,
     displayFormat: normalizedProbabilityFormat(item.displayFormat),
     settingDifferences: normalizedSettingDifferences(item.settingDifferences),
@@ -340,21 +445,24 @@ function buildCurrentMachinePreset() {
       counters: exportedCounters,
       calculations: exportedCalculations,
       displaySettings: {
-        portraitColumns: portraitColumnCount,
-        landscapeColumns: landscapeColumnCount,
-        buttonShape: counterList.dataset.shape === "circle" ? "circle" : "square",
-        countFontSize
+        portraitColumns: source.portraitColumns,
+        landscapeColumns: source.landscapeColumns,
+        buttonShape: source.buttonShape,
+        countFontSize: source.countFontSize
       }
     }
   };
 }
 
-function exportCurrentMachinePreset() {
-  // 書き出すのは保存済みの計算式のみ。入力途中の式は明示的に確認する。
-  if (hasUncommittedMachineEdits() &&
+function exportSelectedMachinePreset() {
+  const selectedId = document.getElementById("machine-export-target").value;
+  // 編集中の式がある選択中機種を対象とするときだけ確認する。
+  if (selectedId === activeMachineId && hasUncommittedMachineEdits() &&
       !window.confirm("編集中の計算式に未保存の変更があります。\n保存済みの内容だけをエクスポートしますか？")) return;
   try {
-    const data = buildCurrentMachinePreset();
+    const data = buildCurrentMachinePreset(selectedId);
+    // 共有形式に収まるかを検証し、不整合な内容は書き出さない。
+    validateMachinePreset(data);
     const json = JSON.stringify(data, null, 2) + "\n";
     const blob = new Blob([json], { type: "application/json" });
     const rawName = (data.machine.name.trim() || "機種").normalize("NFC");

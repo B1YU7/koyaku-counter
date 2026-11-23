@@ -756,3 +756,57 @@
   font-weight: 600;
   text-align: center;
 }
+
+/* v61: 設定内の3項目と全体テーマの行高を統一する。文字サイズは変更しない。 */
+.display-settings-group {
+  grid-template-rows: auto repeat(3, 56px) auto 104px auto;
+}
+.display-settings-group > .column-setting,
+.display-settings-group > .shape-setting,
+.global-settings-group .theme-setting {
+  box-sizing: border-box;
+  height: 56px;
+  min-height: 56px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.global-settings-group .theme-setting {
+  margin: 0;
+}
+/* 機種設定の入出力は、機種設定画面にある「設定」の最下部に配置。 */
+.machine-preset-settings {
+  min-width: 0;
+  padding: 12px 0 16px;
+}
+.machine-preset-settings h3 {
+  margin: 2px 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #222);
+}
+.machine-export-target-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+.machine-export-target-row label { font-size: 13px; font-weight: 600; flex: 0 0 auto; }
+#machine-export-target {
+  min-width: 0;
+  max-width: 60%;
+  width: 180px;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  background: var(--input-bg, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 14px;
+}
+.machine-preset-settings .machine-export-button { margin-bottom: 9px; }
+.machine-preset-settings :is(h3, label, button) {
+  -webkit-user-select: none;
+  user-select: none;
+}

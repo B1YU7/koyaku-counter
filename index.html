@@ -286,13 +286,6 @@
               <div id="machine-settings-list" class="machine-settings-list"></div>
               <button type="button" class="button add-button machine-add-button" id="machine-add">＋ 機種を追加</button>
             </section>
-            <section class="machine-settings-group" aria-label="機種プリセット">
-              <button type="button" class="machine-export-button" id="machine-export">現在の機種をエクスポート</button>
-              <button type="button" class="machine-import-button" id="machine-import">プリセットをインポート</button>
-              <input type="file" id="machine-import-file" accept=".json,.koyaku.json,application/json" aria-label="機種プリセットファイルを選択" hidden>
-              <p class="machine-settings-note">書き出し・読み込みの対象は機種の構成・カスタム計算・表示設定だけです。カウント値・総ゲーム数・履歴・メモは含みません。読み込んだ機種は新規追加されます。</p>
-              <p class="machine-settings-note">機種の切り替えは画面上部から行えます。</p>
-            </section>
 
           <!-- 共通は独立した枠で展開。モードは別の1つの枠にまとめる。 -->
           <section class="settings-accordion counter-settings-group" aria-label="全モード共通">
@@ -363,6 +356,18 @@
               <span class="number-size-preview-label" aria-hidden="true">実寸見本</span>
               <span class="number-size-preview-number" id="number-font-size-preview">888</span>
             </div>
+
+            <!-- 現在の機種を切り替えず、書き出したい機種を選択できる。 -->
+            <section class="machine-preset-settings" aria-labelledby="machine-preset-heading">
+              <h3 id="machine-preset-heading">機種設定のインポート・エクスポート</h3>
+              <div class="machine-export-target-row">
+                <label for="machine-export-target">エクスポートする機種</label>
+                <select id="machine-export-target" aria-label="エクスポートする機種を選択"></select>
+              </div>
+              <button type="button" class="machine-export-button" id="machine-export">エクスポート</button>
+              <button type="button" class="machine-import-button" id="machine-import">インポート</button>
+              <input type="file" id="machine-import-file" accept=".json,.koyaku.json,application/json" aria-label="機種設定ファイルを選択" hidden>
+            </section>
 
           </div>
           </div>
