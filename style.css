@@ -87,9 +87,9 @@ h1 {
   /* 列数を固定し、端数の行だけ中央に寄せる */
   /* 4列時の大きさを少し拡大し、どの列数でも同じボタン寸法・間隔を維持する。 */
   --counter-size: 78px;
-  --counter-gap: 16px;
+  --counter-gap: 22px;
   column-gap: var(--counter-gap);
-  row-gap: 36px;
+  row-gap: 28px;
   /* 設定列数だけを1行に収め、端数行も中央に寄せる。 */
   width: 100%;
   max-width: calc(var(--counter-row-width, 78px) + 16px);
@@ -657,7 +657,7 @@ h1 {
   .counter-list {
     /* スマホの4列で従来の最大63pxから68pxへ。狭い端末だけは収まる大きさに調整。 */
     --counter-size: min(68px, calc((100cqi - 18px - 3 * var(--counter-gap)) / 4));
-    row-gap: 28px;
+    row-gap: 20px;
   }
   /* 4列時の文字サイズを列数に関係なく維持。 */
   .counter-item .title { font-size: 12px; }
@@ -1495,16 +1495,16 @@ button * {
 
 
 /* =====================================
-   確率：保存ボタン以外は高さを72pxに統一（48pxの1.5倍）
+   確率：計算用ボタンは高さ56pxに統一（戻る・削除・保存は除外）
 ===================================== */
 .probability-keypad button,
 .probability-counter-menu button,
 .probability-edit-tools button,
 .probability-add {
   box-sizing: border-box;
-  height: 72px;
-  min-height: 72px;
-  max-height: 72px;
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
 }
 .probability-add {
   display: flex;
@@ -1640,7 +1640,7 @@ button * {
 .probability-counter-grid[data-columns="4"] { --probability-columns:4; }
 .probability-counter-grid[data-columns="5"] { --probability-columns:5; }
 .probability-counter-grid[data-columns="6"] { --probability-columns:6; }
-/* 小役ボタンは高さ72pxを維持し、名前だけ最大2行で収める。 */
+/* 小役選択ボタンはほかの計算ボタンと高さ56pxで揃え、名前だけ最大2行で収める。 */
 .probability-counter-grid button {
   display: flex;
   align-items: center;
@@ -1739,7 +1739,7 @@ button * {
   transform: translateY(2px) rotate(225deg);
 }
 
-/* 設定判別：編集・削除・戻るはコンパクトな高さに戻す。演算ボタンは72pxを維持。 */
+/* 設定判別：項目編集・画面の戻る・削除は従来の40pxを維持。 */
 .probability-item-actions button,
 .probability-editor-top .probability-secondary-button {
   height: 40px;
@@ -1940,7 +1940,7 @@ button * {
 .landscape-mode .counter-list {
   /* 回転後の表示幅に合わせ、6列でも折り返さない範囲で68pxを維持。 */
   --counter-size: min(68px, calc((100cqi - 18px - 5 * var(--counter-gap)) / 6));
-  row-gap: 14px;
+  row-gap: 10px;
 }
 .landscape-mode .total-games-row { margin: 8px 0 14px; }
 .landscape-mode .count-mode-row { margin-bottom: 10px; }
@@ -2264,6 +2264,11 @@ html.ios-viewport-managed:not(.landscape-mode) .container {
   gap: 8px;
 }
 .probability-item-name-row .probability-item-name { flex: 1; min-width: 0; }
+/* 各カスタム計算の編集ボタンは項目の右上へ。狭い画面でも押せる幅を維持。 */
+.probability-item-name-row .probability-item-actions {
+  flex: 0 0 auto;
+  margin: 0 0 0 auto;
+}
 .probability-item.selected { border-color: var(--text, #222); }
 /* 手動横表示の計算項目一覧だけ2列で表示。編集画面は変更しない。 */
 .landscape-mode #probability-items {
@@ -2789,7 +2794,7 @@ html.ios-viewport-managed:not(.landscape-mode) .container {
 .probability-keypad button {
   padding-inline: 0;
 }
-/* 2行目: 総ゲーム数・小役・固定値の入力欄 */
+/* 2行目: 総ゲーム数・小役・数値入力欄 */
 .probability-value-row {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, .8fr) minmax(0, 1.4fr);
@@ -2801,7 +2806,9 @@ html.ios-viewport-managed:not(.landscape-mode) .container {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: 72px;
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
   padding: 5px 2px;
   border: 1px solid var(--border, #ddd);
   border-radius: 9px;
@@ -2813,39 +2820,43 @@ html.ios-viewport-managed:not(.landscape-mode) .container {
   cursor: pointer;
 }
 .probability-number-form {
+  box-sizing: border-box;
   min-width: 0;
+  height: 56px;
+  min-height: 56px;
   margin: 0;
-  padding: 3px 4px;
-  border: 1px solid var(--border, #ddd);
-  border-radius: 9px;
+  padding: 0;
+  border: 0;
   display: flex;
-  flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  gap: 3px;
-  background: var(--surface, #fff);
-}
-.probability-number-form label {
-  font-size: 12px;
-  text-align: center;
 }
 .probability-fixed-controls {
   display: flex;
+  align-items: stretch;
+  flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
   gap: 3px;
 }
 .probability-fixed-controls input {
   flex: 1 1 auto;
   width: 0;
   min-width: 0;
-  min-height: 32px;
+  box-sizing: border-box;
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
   padding: 4px 3px;
   text-align: center;
   font-size: 16px;
 }
 .probability-fixed-controls button {
   flex: 0 0 auto;
-  min-height: 32px;
+  box-sizing: border-box;
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
   padding: 3px 5px;
   font-size: 12px;
 }
@@ -2853,8 +2864,9 @@ html.ios-viewport-managed:not(.landscape-mode) .container {
 .probability-diff-toggle {
   width: 100%;
   box-sizing: border-box;
-  height: 72px;
-  min-height: 72px;
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2876,12 +2888,6 @@ html.ios-viewport-managed:not(.landscape-mode) .container {
   border: 1px solid var(--border, #ddd);
   border-radius: 9px;
   background: var(--surface-soft, #f8f8f8);
-}
-.probability-diff-hint {
-  margin: 0 0 10px;
-  color: var(--muted, #666);
-  font-size: 12px;
-  line-height: 1.5;
 }
 .probability-diff-input-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .probability-diff-input { display: flex; flex-direction: column; gap: 4px; min-width: 0; }

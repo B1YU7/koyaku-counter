@@ -2454,12 +2454,23 @@ resetAllButton.addEventListener("click", function() {
 
   // 実行前に確認する
   const confirmed = window.confirm(
-    "現在の機種の全カウンターと履歴をリセットします。\nほかの機種のデータは変更されません。\nよろしいですか？"
+    "現在の機種の全カウンター・総ゲーム数・履歴をリセットします。\nほかの機種のデータは変更されません。\nよろしいですか？"
   );
 
   if (!confirmed) return;
 
-  // カウントだけを0にする（名前・色・並び順は残す）
+  // 選択中の機種の総ゲーム数だけを0にする。他機種には触れない。
+  // 保存失敗時に画面の値を消さないよう、保存を先に行う。
+  try {
+    machineStorage.setItem(GAMES_STORAGE_KEY, "0");
+  } catch (error) {
+    console.error("総ゲーム数のリセットを保存できませんでした", error);
+    window.alert("総ゲーム数を保存できなかったため、リセットを中止しました。");
+    return;
+  }
+  totalGamesInput.value = "0";
+
+  // カウントを0にする（名前・色・並び順は残す）
   counters.forEach(counterData => {
     counterData.count = 0;
   });
@@ -2926,7 +2937,8 @@ function renderProbabilityList() {
     actions.appendChild(edit);
     const nameRow = document.createElement("div");
     nameRow.className = "probability-item-name-row";
-    nameRow.append(selector, name);
+    // 編集ボタンは各計算項目の右上に置く。並び替え選択と項目名は従来どおり。
+    nameRow.append(selector, name, actions);
     card.append(nameRow, result, expr, substituted);
     // 成功時の小さな百分率は廃止。入力エラー等の説明だけを残す。
     if (calculated.note) card.appendChild(detail);
@@ -2959,7 +2971,6 @@ function renderProbabilityList() {
       else expandedProbabilityDiffIds.delete(item.id);
     });
     card.append(diffToggle, diffBody);
-    card.appendChild(actions);
     probabilityItemsElement.appendChild(card);
   });
   updateProbabilityReorderSelection();

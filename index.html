@@ -63,7 +63,7 @@
           <span class="machine-chevron" aria-hidden="true"></span>
         </div>
         <div class="header-actions">
-          <!-- カウンタータブ専用：カウントだけを全リセット -->
+          <!-- カウンタータブ専用：カウント・総ゲーム数・履歴を全リセット -->
           <button type="button" class="reset-all-button" id="reset-all">
             リセット
           </button>
@@ -193,14 +193,13 @@
               <button type="button" data-formula-op="*" aria-label="乗算"><svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true" focusable="false"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
               <button type="button" data-formula-op="/" aria-label="除算"><svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true" focusable="false"><path d="M5 12h14"/><circle cx="12" cy="5" r="1.35" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.35" fill="currentColor" stroke="none"/></svg></button>
             </div>
-            <!-- 2行目：総ゲーム数・小役・固定値の入力欄 -->
+            <!-- 2行目：総ゲーム数・小役・数値入力欄 -->
             <div class="probability-value-row">
               <button type="button" id="probability-games" class="probability-value-button">総ゲーム数</button>
               <button type="button" id="probability-counter" class="probability-value-button" aria-expanded="false">小役</button>
               <form id="probability-number-form" class="probability-number-form" novalidate>
-                <label for="probability-number-input">固定値</label>
                 <div class="probability-fixed-controls">
-                  <input type="text" id="probability-number-input" inputmode="decimal" maxlength="16"
+                  <input type="text" id="probability-number-input" aria-label="数値を入力" inputmode="decimal" maxlength="16"
                          autocomplete="off" spellcheck="false" placeholder="例：100" aria-describedby="probability-number-error">
                   <button type="submit" id="probability-number-add">追加</button>
                 </div>
@@ -208,12 +207,16 @@
             </div>
             <p id="probability-number-error" class="probability-number-error" role="alert" hidden></p>
             <div id="probability-counter-menu" class="probability-counter-menu" hidden></div>
-            <!-- 3行目：計算項目ごとの設定差（計算式そのものには加えない） -->
+            <!-- 3行目：編集操作 -->
+            <div class="probability-edit-tools">
+              <button type="button" id="probability-undo" class="probability-secondary-button">戻す</button>
+              <button type="button" id="probability-clear" class="probability-secondary-button">クリア</button>
+            </div>
+            <!-- 4行目：計算項目ごとの設定差（計算式そのものには加えない） -->
             <div class="probability-diff-editor">
               <button type="button" id="probability-diff-toggle" class="probability-diff-toggle"
                       aria-expanded="false" aria-controls="probability-diff-inputs">設定差<span class="accordion-chevron" aria-hidden="true">⌄</span></button>
               <div id="probability-diff-inputs" class="probability-diff-inputs" hidden>
-                <p class="probability-diff-hint">設定ごとの値を入力（例：1/100.0、12.5%）。空欄は未設定。</p>
                 <div class="probability-diff-input-grid">
                   <label class="probability-diff-input"><span>設定1</span><input type="text" data-setting-index="0" maxlength="40" placeholder="例：1/100.0" autocomplete="off" spellcheck="false"></label>
                   <label class="probability-diff-input"><span>設定2</span><input type="text" data-setting-index="1" maxlength="40" placeholder="例：1/100.0" autocomplete="off" spellcheck="false"></label>
@@ -223,11 +226,6 @@
                   <label class="probability-diff-input"><span>設定6</span><input type="text" data-setting-index="5" maxlength="40" placeholder="例：1/100.0" autocomplete="off" spellcheck="false"></label>
                 </div>
               </div>
-            </div>
-            <!-- 4行目：編集操作 -->
-            <div class="probability-edit-tools">
-              <button type="button" id="probability-undo" class="probability-secondary-button">戻す</button>
-              <button type="button" id="probability-clear" class="probability-secondary-button">クリア</button>
             </div>
             <div class="probability-preview" aria-live="polite">
               <div class="probability-preview-top">

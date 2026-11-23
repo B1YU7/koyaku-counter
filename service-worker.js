@@ -1,6 +1,6 @@
 // 初回のオンライン読み込み後、PWAをオフラインでも動かす。
 // バージョン更新時はCACHE_NAMEを更新する。
-const CACHE_NAME = "slot-counter-offline-v52-counter-data-protection";
+const CACHE_NAME = "slot-counter-offline-v54-calculation-layout";
 const CACHE_PREFIX = "slot-counter-offline-";
 const APP_ASSETS = [
   "./",
