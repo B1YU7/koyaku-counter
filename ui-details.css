@@ -759,7 +759,7 @@
 
 /* v61: 設定内の3項目と全体テーマの行高を統一する。文字サイズは変更しない。 */
 .display-settings-group {
-  grid-template-rows: auto repeat(3, 56px) auto 104px auto;
+  grid-template-rows: auto repeat(3, 56px) auto 104px;
 }
 .display-settings-group > .column-setting,
 .display-settings-group > .shape-setting,
@@ -773,10 +773,14 @@
 .global-settings-group .theme-setting {
   margin: 0;
 }
-/* 機種設定の入出力は、機種設定画面にある「設定」の最下部に配置。 */
+/* 機種設定の入出力は、下部「設定」タブの一覧に直接配置。 */
 .machine-preset-settings {
   min-width: 0;
-  padding: 12px 0 16px;
+  margin: 16px 0 20px;
+  padding: 12px 15px 16px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  background: var(--surface, #fff);
 }
 .machine-preset-settings h3 {
   margin: 2px 0 12px;

@@ -269,6 +269,18 @@
               </div>
             </div>
           </section>
+
+        <!-- 機種を切り替えず、設定タブから対象機種を選んで書き出す。 -->
+          <section class="machine-preset-settings" aria-labelledby="machine-preset-heading">
+            <h3 id="machine-preset-heading">機種設定のインポート・エクスポート</h3>
+            <div class="machine-export-target-row">
+              <label for="machine-export-target">エクスポートする機種</label>
+              <select id="machine-export-target" aria-label="エクスポートする機種を選択"></select>
+            </div>
+            <button type="button" class="machine-export-button" id="machine-export">エクスポート</button>
+            <button type="button" class="machine-import-button" id="machine-import">インポート</button>
+            <input type="file" id="machine-import-file" accept=".json,.koyaku.json,application/json" aria-label="機種設定ファイルを選択" hidden>
+          </section>
           </div><!-- 設定一覧 -->
 
           <!-- 機種設定は一覧から遷移して表示する専用画面 -->
@@ -357,17 +369,7 @@
               <span class="number-size-preview-number" id="number-font-size-preview">888</span>
             </div>
 
-            <!-- 現在の機種を切り替えず、書き出したい機種を選択できる。 -->
-            <section class="machine-preset-settings" aria-labelledby="machine-preset-heading">
-              <h3 id="machine-preset-heading">機種設定のインポート・エクスポート</h3>
-              <div class="machine-export-target-row">
-                <label for="machine-export-target">エクスポートする機種</label>
-                <select id="machine-export-target" aria-label="エクスポートする機種を選択"></select>
-              </div>
-              <button type="button" class="machine-export-button" id="machine-export">エクスポート</button>
-              <button type="button" class="machine-import-button" id="machine-import">インポート</button>
-              <input type="file" id="machine-import-file" accept=".json,.koyaku.json,application/json" aria-label="機種設定ファイルを選択" hidden>
-            </section>
+
 
           </div>
           </div>
