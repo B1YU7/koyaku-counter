@@ -10,7 +10,7 @@ const MACHINE_OWNED_KEYS = [
   "counters", "counterCount", "counterModesV1", "selectedCounterModeV1",
   "counterHistoryV1", "countFontSize", "counterColumns",
   "counterColumnsPortrait", "counterColumnsLandscape", "counterShape",
-  "totalGames", "probabilityItems", "counterMemo"
+  "totalGames", "probabilityItems", "counterMemo", "countersRecoveryV1"
 ];
 function newMachineId() {
   return `machine-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
@@ -863,86 +863,80 @@ function createCounter(
 }
 
 
-// 保存済みデータを読み込む
+// 起動時は読み込みのみ。保存データが壊れていても初期値で上書きしない。
+// 前回の正常なカウンター値の控えは機種ごとに別キーへ保存する。
+const COUNTER_RECOVERY_KEY = "countersRecoveryV1";
+function decodeSavedCounters(raw, label) {
+  let data;
+  try { data = JSON.parse(raw); }
+  catch (_) { throw new Error(`${label}をJSONとして読み込めません。`); }
+  if (!Array.isArray(data) || data.length === 0 || data.length > 500) {
+    throw new Error(`${label}の形式が正しくありません。`);
+  }
+  const loaded = data.map((item, index) => {
+    if (Number.isSafeInteger(item) && item >= 0) {
+      return createCounter(`カウンター ${index + 1}`, item);
+    }
+    if (item && typeof item === "object" &&
+        Number.isSafeInteger(item.count) && item.count >= 0) {
+      return createCounter(
+        typeof item.name === "string" ? item.name.slice(0, 30) : `カウンター ${index + 1}`,
+        item.count,
+        normalizeHex(item.color || "") || DEFAULT_COUNTER_COLOR,
+        typeof item.id === "string" && /^counter-[a-z0-9-]+$/i.test(item.id)
+          ? item.id : newCounterId(),
+        item.modeId === COMMON_MODE_ID || modes.some(mode => mode.id === item.modeId)
+          ? item.modeId : (modes[0]?.id || COMMON_MODE_ID)
+      );
+    }
+    throw new Error(`${label}の${index + 1}件目を復元できません。`);
+  });
+  // 無効な項目を黙って削除して保存し直すことはしない。
+  const ids = new Set(loaded.map(item => item.id));
+  if (ids.size !== loaded.length) throw new Error(`${label}に重複した小役IDがあります。`);
+  return loaded;
+}
 function loadCounters() {
   const saved = machineStorage.getItem(STORAGE_KEY);
-
+  const recovery = machineStorage.getItem(COUNTER_RECOVERY_KEY);
+  let primaryError = null;
   if (saved !== null) {
+    try { return decodeSavedCounters(saved, "カウンターの保存データ"); }
+    catch (error) { primaryError = error; console.error(error); }
+  }
+  if (recovery !== null) {
     try {
-      const data = JSON.parse(saved);
-
-      if (Array.isArray(data)) {
-        const loaded = data.map((item, index) => {
-
-          // 旧データ形式
-          if (
-            Number.isSafeInteger(item) &&
-            item >= 0
-          ) {
-            return createCounter(
-              `カウンター ${index + 1}`,
-              item
-            );
-          }
-
-          // 現在のデータ形式
-          if (
-            item &&
-            typeof item === "object" &&
-            Number.isSafeInteger(item.count) &&
-            item.count >= 0
-          ) {
-            return createCounter(
-              typeof item.name === "string"
-                ? item.name.slice(0, 30)
-                : `カウンター ${index + 1}`,
-              item.count,
-              normalizeHex(item.color || "") ||
-                DEFAULT_COUNTER_COLOR,
-              typeof item.id === "string" && /^counter-[a-z0-9-]+$/i.test(item.id)
-                ? item.id
-                : newCounterId(),
-              item.modeId === COMMON_MODE_ID || modes.some(mode => mode.id === item.modeId)
-                ? item.modeId : (modes[0]?.id || COMMON_MODE_ID)
-            );
-          }
-
-          return null;
-
-        }).filter(Boolean);
-
-        if (loaded.length > 0) {
-          // 上限15個は各グループ（共通・モード別）の「追加時」に適用する。
-          // 全グループの合計を15個で切り捨てると保存済みデータを失うため、
-          // 読み込み時には有効なカウンターをすべて復元する。
-          return loaded;
-        }
-      }
-
+      const restored = decodeSavedCounters(recovery, "カウンターの控え");
+      console.warn("カウンターの保存データを控えから復元しました。元のキーは起動時には上書きしません。");
+      return restored;
     } catch (error) {
-      console.error("データ読み込みエラー", error);
+      console.error("カウンターの控えを読み込めませんでした", error);
     }
   }
+  if (saved !== null || recovery !== null) {
+    // 保存データに問題があってもゼロで上書きしない。実行を停止する。
+    window.alert("カウンターの保存データを読み込めませんでした。\nカウント値を保護するため、初期値で上書きせず停止します。\nアプリのデータを消さずに確認してください。");
+    throw primaryError || new Error("カウンターデータを復元できませんでした。保存領域は変更していません。");
+  }
 
-  // 古い単一カウンターのデータを引き継ぐ
+  // 古い単一カウンターのデータを引き継ぐ。
   const oldSaved = machineStorage.getItem(OLD_STORAGE_KEY);
-
   if (oldSaved !== null) {
     const oldCount = Number(oldSaved);
-
-    if (
-      Number.isSafeInteger(oldCount) &&
-      oldCount >= 0
-    ) {
-      return [
-        createCounter("カウンター 1", oldCount)
-      ];
+    if (Number.isSafeInteger(oldCount) && oldCount >= 0) {
+      return [createCounter("カウンター 1", oldCount)];
     }
+    window.alert("古いカウンターデータを読み込めませんでした。上書きを防ぐため停止します。");
+    throw new Error("旧カウンターの保存値が不正です。");
   }
-
+  // カウンターだけが失われた形跡があれば、新規データとして初期化しない。
+  const history = machineStorage.getItem("counterHistoryV1");
+  if (history !== null && history !== "" && history !== '{"past":[],"future":[]}') {
+    window.alert("カウント履歴はありますが、カウンター本体が見つかりません。\nデータ保護のため自動初期化を中止しました。");
+    throw new Error("カウンター本体がないのに操作履歴が残っています。");
+  }
   return [createCounter("カウンター 1")];
 }
-
 
 let counters = loadCounters();
 
@@ -1018,7 +1012,11 @@ let activeColorPickerSection = null;
 
 // カウンターの保存だけを担当する。モード保存・画面描画は呼び出し側で行う。
 function saveCounters() {
-  machineStorage.setItem(STORAGE_KEY, JSON.stringify(counters));
+  const data = JSON.stringify(counters);
+  // メイン保存に成功した場合のみ、正常な内容の控えも更新する。
+  machineStorage.setItem(STORAGE_KEY, data);
+  try { machineStorage.setItem(COUNTER_RECOVERY_KEY, data); }
+  catch (error) { console.warn("カウンターの予備保存に失敗しました", error); }
 }
 
 
@@ -3223,9 +3221,8 @@ probabilitySaveButton.addEventListener("click", function() {
 // 初期表示
 // ===================================
 
-saveCounters();
-saveModes();
-
+// 重要：起動するだけではカウンター・モードを保存し直さない。
+// 旧バージョンで読み込みに失敗したとき、初期値で上書きする事故を防止する。
 renderCounters();
 renderCountHistory();
 
