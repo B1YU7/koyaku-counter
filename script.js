@@ -324,6 +324,7 @@ function buildCurrentMachinePreset() {
   const exportedCalculations = probabilityItems.map(item => ({
     name: item.name,
     displayFormat: normalizedProbabilityFormat(item.displayFormat),
+    settingDifferences: normalizedSettingDifferences(item.settingDifferences),
     tokens: item.tokens.map(token => {
       if (token.type === "counter") {
         let id = counterIds.get(token.id);
@@ -342,7 +343,7 @@ function buildCurrentMachinePreset() {
 
   return {
     format: "koyaku-counter-machine-preset",
-    version: 1,
+    version: 2,
     machine: {
       name: machine.name,
       modes: exportedModes,
@@ -418,8 +419,8 @@ function presetString(value, maxLength, label) {
 
 function validateMachinePreset(source) {
   presetFields(source, ["format", "version", "machine"], "ファイル");
-  presetRequirement(source.format === MACHINE_PRESET_FORMAT && source.version === 1,
-    "対応していないプリセット形式・バージョンです。v44形式で書き出したファイルを選んでください。");
+  presetRequirement(source.format === MACHINE_PRESET_FORMAT && [1, 2].includes(source.version),
+    "対応していないプリセット形式・バージョンです。");
   const machine = source.machine;
   presetFields(machine, ["name", "modes", "counters", "calculations", "displaySettings"], "機種");
   const name = presetString(machine.name, 40, "機種名");
@@ -457,7 +458,14 @@ function validateMachinePreset(source) {
   });
 
   const validCalculations = machine.calculations.map((item, index) => {
-    presetFields(item, ["name", "displayFormat", "tokens"], `計算項目${index + 1}`);
+    presetFields(item, source.version === 2
+      ? ["name", "displayFormat", "tokens", "settingDifferences"]
+      : ["name", "displayFormat", "tokens"], `計算項目${index + 1}`);
+    if (source.version === 2) {
+      presetRequirement(Array.isArray(item.settingDifferences) && item.settingDifferences.length === 6 &&
+        item.settingDifferences.every(value => typeof value === "string" && value.length <= 40 &&
+          !/[\x00-\x1f\x7f]/.test(value)), "設定差の形式が正しくありません。");
+    }
     presetRequirement(item.displayFormat === "percent" || item.displayFormat === "fraction",
       "計算項目の表示形式が不正です。");
     presetRequirement(Array.isArray(item.tokens) && item.tokens.length >= 1 &&
@@ -493,7 +501,9 @@ function validateMachinePreset(source) {
     presetRequirement(calculateFormula(tokens, true).valid, `「${item.name || index + 1}」の計算式が成立しません。`);
     return {
       name: presetString(item.name, 40, "計算項目名"),
-      displayFormat: item.displayFormat, tokens
+      displayFormat: item.displayFormat, tokens,
+      settingDifferences: source.version === 2
+        ? normalizedSettingDifferences(item.settingDifferences) : normalizedSettingDifferences()
     };
   });
 
@@ -549,6 +559,7 @@ function buildImportedMachineStorage(preset) {
     id: `prob-import-${Date.now().toString(36)}-${index}`,
     name: item.name,
     displayFormat: item.displayFormat,
+    settingDifferences: normalizedSettingDifferences(item.settingDifferences),
     tokens: item.tokens.map(token => token.type === "counter"
       ? { type: "counter", id: mappedCounters.get(token.id) || token.id }
       : { ...token })
@@ -1130,6 +1141,8 @@ function createHistoryRow(entry, undone, latestApplied) {
 }
 
 function renderCountHistory() {
+  // 他のタブで履歴が変更された場合は表示を保留し、カウンタータブを開いた時に更新。
+  if (mainScreen.hidden) return;
   countUndoButton.disabled = countHistory.past.length === 0;
   countRedoButton.disabled = countHistory.future.length === 0;
   countHistoryCurrent.replaceChildren();
@@ -1231,7 +1244,7 @@ function changeCount(counterData, newValue, action) {
   countHistory.past.push(entry);
   countHistory.future.length = 0;
   saveCounters();
-  refreshProbabilityDisplay();
+
   saveCountHistory();
   // 数値だけの変更では、ボタンと長押しイベントを作り直さない。
   if (!refreshVisibleCounterNumber(counterData)) renderCounters();
@@ -1271,7 +1284,7 @@ function stepCountHistory(isRedo) {
   from.pop();
   to.push(entry);
   saveCounters();
-  refreshProbabilityDisplay();
+
   saveCountHistory();
   let switchedMode = false;
   if (target.modeId !== COMMON_MODE_ID && modes.some(mode => mode.id === target.modeId)) {
@@ -1635,6 +1648,9 @@ function renderCounterModeTabs() {
 }
 
 function renderCounters() {
+  // 設定画面での編集時には非表示のカウンターを作り直さない。
+  // カウンタータブへ戻った時に最新データで再描画する。
+  if (mainScreen.hidden) return;
   if (!modes.some(mode => mode.id === selectedModeId)) selectedModeId = modes[0]?.id || null;
   const common = counters.filter(counter => counter.modeId === COMMON_MODE_ID);
   commonCounterArea.hidden = common.length === 0;
@@ -1824,7 +1840,7 @@ function createCounterEditor(groupId) {
     if (delta < 0) settingsList.insertBefore(selectedRow, adjacentRow);
     else settingsList.insertBefore(adjacentRow, selectedRow);
     saveCounters();
-    refreshProbabilityDisplay();
+  
     renderCounters();
     updateSelection();
   }
@@ -1834,7 +1850,7 @@ function createCounterEditor(groupId) {
     if (state.selectedId === id) state.selectedId = null;
     dropDeletedCounterHistory(id);
     saveCounters();
-    refreshProbabilityDisplay();
+  
     renderCounters();
     renderSettings();
   }
@@ -1872,7 +1888,7 @@ function createCounterEditor(groupId) {
     input.addEventListener("input", function() {
       counterData.name = input.value;
       saveCounters();
-      refreshProbabilityDisplay();
+    
     });
 
 
@@ -1991,7 +2007,7 @@ function createCounterEditor(groupId) {
       nativeInput.value = normalized;
 
       saveCounters();
-      refreshProbabilityDisplay();
+    
 
       renderCounters();
 
@@ -2114,7 +2130,7 @@ function createCounterEditor(groupId) {
     if (groupCounters(groupId).length >= MAX_COUNTERS) return;
     counters.push(createCounter(getNewCounterName(groupId), 0, DEFAULT_COUNTER_COLOR, newCounterId(), groupId));
     saveCounters();
-    refreshProbabilityDisplay();
+  
     renderCounters();
     renderSettings();
   });
@@ -2292,7 +2308,7 @@ function deleteMode(modeId) {
   saveModes();
   renderSettings();
   renderCounters();
-  refreshProbabilityDisplay();
+
 }
 
 function moveSelectedMode(delta) {
@@ -2400,7 +2416,7 @@ settingsModeDetailTitle.addEventListener("input", () => {
   mode.name = settingsModeDetailTitle.value.slice(0, 30);
   saveModes();
   renderCounterModeTabs();
-  refreshProbabilityDisplay();
+
 });
 settingsModeDelete.addEventListener("click", () => {
   if (editingModeId) deleteMode(editingModeId);
@@ -2453,7 +2469,7 @@ resetAllButton.addEventListener("click", function() {
   countHistory = { past: [], future: [] };
   historyShown = HISTORY_PAGE_SIZE;
   saveCounters();
-  refreshProbabilityDisplay();
+
   saveCountHistory();
   renderCounters();
   renderCountHistory();
@@ -2559,7 +2575,10 @@ function selectTab(tabName) {
 
   // 設定・確率タブを開くときに保存済みデータから最新表示にする。
   if (tabName === "settings") renderSettings();
-  if (tabName === "counter") renderCounters();
+  if (tabName === "counter") {
+    renderCounters();
+    renderCountHistory();
+  }
   if (tabName === "probability") refreshProbabilityDisplay();
 
   // 前のタブのスクロール位置は持ち越さない。
@@ -2611,7 +2630,7 @@ totalGamesInput.addEventListener("input", function() {
   const digits = totalGamesInput.value.replace(/[^0-9]/g, "").slice(0, 9);
   totalGamesInput.value = digits;
   machineStorage.setItem(GAMES_STORAGE_KEY, digits);
-  refreshProbabilityDisplay();
+
 });
 
 // ===================================
@@ -2636,6 +2655,9 @@ const probabilityCounterMenu = document.getElementById("probability-counter-menu
 const probabilityNumberForm = document.getElementById("probability-number-form");
 const probabilityNumberInput = document.getElementById("probability-number-input");
 const probabilityNumberError = document.getElementById("probability-number-error");
+const probabilityDiffToggle = document.getElementById("probability-diff-toggle");
+const probabilityDiffInputs = document.getElementById("probability-diff-inputs");
+const probabilityDiffFields = [...document.querySelectorAll("[data-setting-index]")];
 const probabilityUndoButton = document.getElementById("probability-undo");
 const probabilityClearButton = document.getElementById("probability-clear");
 const probabilityPreviewValue = document.getElementById("probability-preview-value");
@@ -2649,6 +2671,13 @@ function validFormulaToken(token) {
   if (token.type === "number") return typeof token.value === "number" &&
     Number.isFinite(token.value) && Math.abs(token.value) <= 1000000000;
   return token.type === "op" && ["+", "-", "*", "/", "(", ")"].includes(token.value);
+}
+
+// 設定1〜6の参考値。表示専用であり、計算式の演算には使用しない。
+function normalizedSettingDifferences(value) {
+  return Array.from({ length: 6 }, (_, index) =>
+    Array.isArray(value) && typeof value[index] === "string"
+      ? value[index].replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 40) : "");
 }
 
 // 旧データは従来の「1/○○」表示を維持する。
@@ -2668,7 +2697,8 @@ function loadProbabilityItems() {
         id: item.id,
         name: item.name.slice(0, 40),
         tokens: item.tokens.map(token => ({ ...token })),
-        displayFormat: normalizedProbabilityFormat(item.displayFormat)
+        displayFormat: normalizedProbabilityFormat(item.displayFormat),
+        settingDifferences: normalizedSettingDifferences(item.settingDifferences)
       }));
   } catch (error) {
     console.error("確率項目の読み込みエラー", error);
@@ -2707,6 +2737,7 @@ function moveSelectedProbability(delta) {
 }
 let probabilityDraft = null;
 let editingProbabilityId = null;
+const expandedProbabilityDiffIds = new Set();
 // 編集開始時の内容と比較し、実際に保存していない変更がある場合だけ警告する。
 let probabilityInitialState = null;
 
@@ -2715,6 +2746,7 @@ function hasUnsavedProbabilityChanges() {
   return probabilityNameInput.value !== probabilityInitialState.name ||
     probabilityDraft.displayFormat !== probabilityInitialState.displayFormat ||
     JSON.stringify(probabilityDraft.tokens) !== probabilityInitialState.tokens ||
+    JSON.stringify(probabilityDraft.settingDifferences) !== probabilityInitialState.settingDifferences ||
     probabilityNumberInput.value.trim() !== "";
 }
 
@@ -2738,6 +2770,20 @@ function tokenLabel(token) {
 
 function formulaDescription(tokens) {
   return tokens.map(tokenLabel).join(" ");
+}
+
+// 数式の見た目を保ちながら、参照している小役と総ゲーム数を現在の数値に置き換える。
+// 保存する式そのものは変更せず、設定判別タブを開いた時点の値を表示する。
+function formulaWithCountValues(tokens) {
+  const games = readTotalGames();
+  return tokens.map(token => {
+    if (token.type === "games") return games === null ? "未入力" : String(games);
+    if (token.type === "counter") {
+      const counter = counterForId(token.id);
+      return counter ? String(counter.count) : "削除済み";
+    }
+    return tokenLabel(token);
+  }).join(" ");
 }
 
 // 安全な再帰下降パーサー。evalやFunctionを使わず、四則演算と括弧のみを評価。
@@ -2868,6 +2914,10 @@ function renderProbabilityList() {
     expr.className = "probability-item-expression";
     expr.textContent = formulaDescription(item.tokens);
     expr.title = expr.textContent;
+    const substituted = document.createElement("div");
+    substituted.className = "probability-item-substituted";
+    substituted.textContent = formulaWithCountValues(item.tokens);
+    substituted.title = substituted.textContent;
     const actions = document.createElement("div");
     actions.className = "probability-item-actions";
     const edit = document.createElement("button");
@@ -2879,9 +2929,38 @@ function renderProbabilityList() {
     const nameRow = document.createElement("div");
     nameRow.className = "probability-item-name-row";
     nameRow.append(selector, name);
-    card.append(nameRow, result, expr);
+    card.append(nameRow, result, expr, substituted);
     // 成功時の小さな百分率は廃止。入力エラー等の説明だけを残す。
     if (calculated.note) card.appendChild(detail);
+
+    const diffToggle = document.createElement("button");
+    diffToggle.type = "button";
+    diffToggle.className = "probability-item-diff-toggle";
+    const values = normalizedSettingDifferences(item.settingDifferences);
+    const filled = values.filter(Boolean).length;
+    diffToggle.textContent = filled ? `設定差（${filled}/6）` : "設定差";
+    diffToggle.setAttribute("aria-expanded", String(expandedProbabilityDiffIds.has(item.id)));
+    const diffBody = document.createElement("div");
+    diffBody.className = "probability-item-diff-body";
+    diffBody.hidden = !expandedProbabilityDiffIds.has(item.id);
+    const diffList = document.createElement("dl");
+    diffList.className = "probability-item-diff-list";
+    values.forEach((value, index) => {
+      const term = document.createElement("dt");
+      term.textContent = `設定${index + 1}`;
+      const description = document.createElement("dd");
+      description.textContent = value || "—";
+      diffList.append(term, description);
+    });
+    diffBody.appendChild(diffList);
+    diffToggle.addEventListener("click", () => {
+      const open = diffBody.hidden;
+      diffBody.hidden = !open;
+      diffToggle.setAttribute("aria-expanded", String(open));
+      if (open) expandedProbabilityDiffIds.add(item.id);
+      else expandedProbabilityDiffIds.delete(item.id);
+    });
+    card.append(diffToggle, diffBody);
     card.appendChild(actions);
     probabilityItemsElement.appendChild(card);
   });
@@ -2950,14 +3029,22 @@ function openProbabilityEditor(id = null) {
   const item = probabilityItems.find(entry => entry.id === id);
   editingProbabilityId = item ? item.id : null;
   probabilityDraft = item
-    ? { name: item.name, tokens: item.tokens.map(token => ({ ...token })), displayFormat: normalizedProbabilityFormat(item.displayFormat) }
-    : { name: "", tokens: [], displayFormat: "fraction" };
+    ? { name: item.name, tokens: item.tokens.map(token => ({ ...token })),
+        displayFormat: normalizedProbabilityFormat(item.displayFormat),
+        settingDifferences: normalizedSettingDifferences(item.settingDifferences) }
+    : { name: "", tokens: [], displayFormat: "fraction", settingDifferences: normalizedSettingDifferences() };
   probabilityNameInput.value = probabilityDraft.name;
   probabilityInitialState = {
     name: probabilityDraft.name,
     tokens: JSON.stringify(probabilityDraft.tokens),
-    displayFormat: probabilityDraft.displayFormat
+    displayFormat: probabilityDraft.displayFormat,
+    settingDifferences: JSON.stringify(probabilityDraft.settingDifferences)
   };
+  probabilityDiffFields.forEach(field => {
+    field.value = probabilityDraft.settingDifferences[Number(field.dataset.settingIndex)];
+  });
+  probabilityDiffInputs.hidden = true;
+  probabilityDiffToggle.setAttribute("aria-expanded", "false");
   probabilityEditorTitle.textContent = item ? "計算項目を編集" : "計算項目を作成";
   probabilityEditorDeleteButton.hidden = !item;
   probabilityListView.hidden = true;
@@ -2976,6 +3063,8 @@ function closeProbabilityEditor() {
   probabilityListView.hidden = false;
   probabilityCounterMenu.hidden = true;
   probabilityCounterButton.setAttribute("aria-expanded", "false");
+  probabilityDiffInputs.hidden = true;
+  probabilityDiffToggle.setAttribute("aria-expanded", "false");
   editingProbabilityId = null;
   probabilityDraft = null;
   probabilityInitialState = null;
@@ -2995,10 +3084,21 @@ probabilityEditorDeleteButton.addEventListener("click", function() {
   const item = probabilityItems.find(entry => entry.id === editingProbabilityId);
   if (!item || !window.confirm(`「${item.name || "名前なし"}」を削除しますか？`)) return;
   probabilityItems = probabilityItems.filter(entry => entry.id !== item.id);
+  expandedProbabilityDiffIds.delete(item.id);
   saveProbabilityItems();
   closeProbabilityEditor();
 });
 probabilityNameInput.addEventListener("input", renderFormulaDraft);
+probabilityDiffToggle.addEventListener("click", () => {
+  const open = probabilityDiffInputs.hidden;
+  probabilityDiffInputs.hidden = !open;
+  probabilityDiffToggle.setAttribute("aria-expanded", String(open));
+});
+probabilityDiffFields.forEach(field => field.addEventListener("input", () => {
+  if (!probabilityDraft) return;
+  const index = Number(field.dataset.settingIndex);
+  probabilityDraft.settingDifferences[index] = field.value.replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 40);
+}));
 // 数字は計算式の定数として保存する。総ゲーム数・小役の保存値には触れない。
 probabilityNumberInput.addEventListener("input", () => {
   probabilityNumberError.hidden = true;
@@ -3109,7 +3209,8 @@ probabilitySaveButton.addEventListener("click", function() {
     id: editingProbabilityId || `prob-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
     name: name.slice(0, 40),
     tokens: probabilityDraft.tokens.map(token => ({ ...token })),
-    displayFormat: normalizedProbabilityFormat(probabilityDraft.displayFormat)
+    displayFormat: normalizedProbabilityFormat(probabilityDraft.displayFormat),
+    settingDifferences: normalizedSettingDifferences(probabilityDraft.settingDifferences)
   };
   const index = probabilityItems.findIndex(item => item.id === editingProbabilityId);
   if (index >= 0) probabilityItems[index] = record;
@@ -3124,7 +3225,6 @@ probabilitySaveButton.addEventListener("click", function() {
 
 saveCounters();
 saveModes();
-refreshProbabilityDisplay();
 
 renderCounters();
 renderCountHistory();

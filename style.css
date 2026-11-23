@@ -87,9 +87,9 @@ h1 {
   /* 列数を固定し、端数の行だけ中央に寄せる */
   /* 4列時の大きさを少し拡大し、どの列数でも同じボタン寸法・間隔を維持する。 */
   --counter-size: 78px;
-  --counter-gap: 22px;
+  --counter-gap: 16px;
   column-gap: var(--counter-gap);
-  row-gap: 44px;
+  row-gap: 36px;
   /* 設定列数だけを1行に収め、端数行も中央に寄せる。 */
   width: 100%;
   max-width: calc(var(--counter-row-width, 78px) + 16px);
@@ -657,7 +657,7 @@ h1 {
   .counter-list {
     /* スマホの4列で従来の最大63pxから68pxへ。狭い端末だけは収まる大きさに調整。 */
     --counter-size: min(68px, calc((100cqi - 18px - 3 * var(--counter-gap)) / 4));
-    row-gap: 36px;
+    row-gap: 28px;
   }
   /* 4列時の文字サイズを列数に関係なく維持。 */
   .counter-item .title { font-size: 12px; }
@@ -999,7 +999,7 @@ button * {
   background: var(--surface, #fff);
   color: var(--text, #222);
 }
-/* 保存済み項目の見出しは1行、式は2行の高さで統一する。 */
+/* 保存済み項目の見出しは1行、式は最大2行。短い式は余白を作らない。 */
 .probability-item-name {
   font-size: 16px;
   font-weight: bold;
@@ -1016,8 +1016,8 @@ button * {
   font-size: 13px;
   margin-top: 5px;
   line-height: 18px;
-  height: 36px;
-  min-height: 36px;
+  height: auto;
+  min-height: 18px;
   max-height: 36px;
   min-width: 0;
   display: -webkit-box;
@@ -1025,6 +1025,16 @@ button * {
   -webkit-line-clamp: 2;
   overflow: hidden;
   overflow-wrap: anywhere;
+}
+/* 保存済みの数式の直下に、現在のカウント値を代入した式を表示する。 */
+.probability-item-substituted {
+  color: var(--muted, #666);
+  font-size: 12px;
+  line-height: 18px;
+  margin-top: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 .probability-item-detail { color: var(--muted, #666); font-size: 12px; margin-top: 4px; }
 .probability-item-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
@@ -1582,8 +1592,8 @@ button * {
   background: var(--surface-soft, #f5f5f5); 
       cursor: pointer; }
 .counter-mode-tab.active { border-color: var(--text,#333); font-weight: bold; background: var(--surface,#fff); }
-/* フォントはiPhoneの標準書体で、数字だけ太さ500にする */
-.counter-item > .number { font-weight: 700; font-variant-numeric: tabular-nums; }
+/* カウント値を少し太くする。文字サイズと配置は従来どおり。 */
+.counter-item > .number { font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* 共通カウンターは独立した枠、モードは一つの枠で展開 */
 .settings-accordion { margin-bottom: 20px; }
@@ -1617,7 +1627,7 @@ button * {
   background: var(--surface-soft,#f7f7f7); color: var(--text,#222); font: inherit; font-size: 13px;
   cursor: pointer; white-space: nowrap; }
 .font-size-option.active { border-color: var(--text,#333); background: var(--surface,#fff); font-weight: bold; }
-.number-size-preview-number { font-family: inherit; font-weight: 700; }
+.number-size-preview-number { font-family: inherit; font-weight: 800; }
 @media(max-width: 700px) { .font-size-options { width: 100%; } }
 /* 設定判別の小役メニュー：共通・各モード別に整理 */
 .probability-counter-menu { display: flex; flex-direction: column; gap: 14px; }
@@ -1930,7 +1940,7 @@ button * {
 .landscape-mode .counter-list {
   /* 回転後の表示幅に合わせ、6列でも折り返さない範囲で68pxを維持。 */
   --counter-size: min(68px, calc((100cqi - 18px - 5 * var(--counter-gap)) / 6));
-  row-gap: 18px;
+  row-gap: 14px;
 }
 .landscape-mode .total-games-row { margin: 8px 0 14px; }
 .landscape-mode .count-mode-row { margin-bottom: 10px; }
@@ -2767,3 +2777,172 @@ html.ios-viewport-managed:not(.landscape-mode) .container {
 
 .machine-settings-heading, .machine-settings-item .mode-row-name { -webkit-user-select: none; user-select: none; }
 #machine-settings-overview > .machine-settings-group { margin-bottom: 0; }
+
+/* =====================================
+   v51: 数式作成ボタンの4行配置と設定差
+===================================== */
+/* 1行目: （ ） ＋ － × ÷ の6列。左右を均等に配置する。 */
+.probability-keypad {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+.probability-keypad button {
+  padding-inline: 0;
+}
+/* 2行目: 総ゲーム数・小役・固定値の入力欄 */
+.probability-value-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .8fr) minmax(0, 1.4fr);
+  align-items: stretch;
+  gap: 7px;
+  margin-top: 9px;
+}
+.probability-value-row > button {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 72px;
+  padding: 5px 2px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.probability-number-form {
+  min-width: 0;
+  margin: 0;
+  padding: 3px 4px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 3px;
+  background: var(--surface, #fff);
+}
+.probability-number-form label {
+  font-size: 12px;
+  text-align: center;
+}
+.probability-fixed-controls {
+  display: flex;
+  min-width: 0;
+  gap: 3px;
+}
+.probability-fixed-controls input {
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 0;
+  min-height: 32px;
+  padding: 4px 3px;
+  text-align: center;
+  font-size: 16px;
+}
+.probability-fixed-controls button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 3px 5px;
+  font-size: 12px;
+}
+.probability-diff-editor { margin-top: 9px; }
+.probability-diff-toggle {
+  width: 100%;
+  box-sizing: border-box;
+  height: 72px;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  background: var(--surface-soft, #f8f8f8);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.probability-diff-toggle .accordion-chevron { font-size: 19px; line-height: 1; }
+.probability-diff-toggle[aria-expanded="true"] .accordion-chevron { transform: rotate(180deg); }
+.probability-diff-inputs {
+  margin-top: 6px;
+  padding: 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 9px;
+  background: var(--surface-soft, #f8f8f8);
+}
+.probability-diff-hint {
+  margin: 0 0 10px;
+  color: var(--muted, #666);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.probability-diff-input-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.probability-diff-input { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.probability-diff-input span { font-size: 13px; font-weight: 700; }
+.probability-diff-input input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #ddd);
+  background: var(--input-bg, #fff);
+  color: var(--text, #222);
+  font: inherit;
+  font-size: 16px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.probability-edit-tools { margin-top: 9px; }
+.probability-item-diff-toggle {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 11px;
+  padding: 7px 11px;
+  text-align: left;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  background: var(--surface-soft, #f8f8f8);
+  color: var(--text, #222);
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.probability-item-diff-toggle::after { content: "⌄"; float: right; font-size: 16px; }
+.probability-item-diff-toggle[aria-expanded="true"]::after { content: "⌃"; }
+.probability-item-diff-body { margin-top: 5px; }
+.probability-item-diff-list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-soft, #f8f8f8);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.probability-item-diff-list dt, .probability-item-diff-list dd {
+  margin: 0;
+  padding: 8px 10px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border, #ddd);
+}
+.probability-item-diff-list dt { font-weight: 700; }
+.probability-item-diff-list dt:nth-last-child(2), .probability-item-diff-list dd:last-child { border-bottom: 0; }
+@media (max-width: 380px) {
+  .probability-value-row { gap: 4px; }
+  .probability-fixed-controls { gap: 2px; }
+  .probability-fixed-controls button { padding-inline: 3px; }
+  .probability-keypad { gap: 4px; }
+}
