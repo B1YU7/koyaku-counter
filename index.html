@@ -80,6 +80,8 @@
           <button type="button" class="reset-all-button" id="reset-memo" hidden>
             リセット
           </button>
+          <!-- 設定判別の一覧だけで使う並び替えボタン -->
+          <div id="probability-reorder-controls" hidden></div>
         </div>
       </div>
     </header>
@@ -173,10 +175,6 @@
         <!-- 設定判別タブ：カスタム計算の一覧と編集画面 -->
         <section id="probability-screen" class="tab-panel" role="tabpanel" aria-labelledby="tab-probability" hidden>
           <div id="probability-list-view">
-            <div class="probability-list-heading">
-              <span>カスタム計算</span>
-              <div id="probability-reorder-controls"></div>
-            </div>
             <div id="probability-items" class="probability-items"></div>
             <button type="button" id="probability-add" class="button probability-add">＋ 計算項目を追加</button>
           </div>

@@ -422,6 +422,7 @@ function selectTab(tabName) {
   // リセットは表示しているタブ専用。
   resetAllButton.hidden = tabName !== "counter";
   resetMemoButton.hidden = tabName !== "memo";
+  syncProbabilityReorderHeader();
 
   // 設定タブを離れたら詳細・行の操作メニューを閉じる。
   if (tabName !== "settings") {

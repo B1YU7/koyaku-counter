@@ -76,9 +76,13 @@ function loadProbabilityItems() {
 
 let probabilityItems = loadProbabilityItems();
 let reorderSelectedProbabilityId = null;
+const probabilityReorderContainer = document.getElementById("probability-reorder-controls");
 const probabilityReorderControls = createMoveControls(false, false,
   () => moveSelectedProbability(-1), () => moveSelectedProbability(1), "選択した計算項目");
-document.getElementById("probability-reorder-controls").appendChild(probabilityReorderControls);
+probabilityReorderContainer.appendChild(probabilityReorderControls);
+function syncProbabilityReorderHeader() {
+  probabilityReorderContainer.hidden = probabilityScreen.hidden || !probabilityEditor.hidden;
+}
 function updateProbabilityReorderSelection() {
   syncReorderSelection(probabilityItems, reorderSelectedProbabilityId,
     probabilityReorderControls, probabilityItemsElement, ".probability-item", "probabilityId");
@@ -404,6 +408,7 @@ function openProbabilityEditor(id = null) {
   probabilityEditorDeleteButton.hidden = !item;
   probabilityListView.hidden = true;
   probabilityEditor.hidden = false;
+  syncProbabilityReorderHeader();
   probabilityCounterMenu.hidden = true;
   probabilityCounterButton.setAttribute("aria-expanded", "false");
   renderFormulaDraft();
@@ -416,6 +421,7 @@ function closeProbabilityEditor() {
   probabilityNumberError.textContent = "";
   probabilityEditor.hidden = true;
   probabilityListView.hidden = false;
+  syncProbabilityReorderHeader();
   probabilityCounterMenu.hidden = true;
   probabilityCounterButton.setAttribute("aria-expanded", "false");
   probabilityDiffInputs.hidden = true;

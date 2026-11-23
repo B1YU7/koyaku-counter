@@ -30,7 +30,17 @@
   font-size: 15px;
   font-weight: bold;
 }
-#probability-reorder-controls { margin-left: auto; }
+/* 設定判別一覧の並び替え操作はヘッダー右端へ。 */
+.header-actions #probability-reorder-controls { margin: 0; }
+#probability-reorder-controls[hidden] { display: none !important; }
+/* 狭い端末でも機種名と重ならないよう、ヘッダー内はコンパクトにする。 */
+.header-actions #probability-reorder-controls .always-move-controls { gap: 4px; }
+.header-actions #probability-reorder-controls .always-move-button {
+  width: 34px;
+  height: 38px;
+  flex-basis: 34px;
+  font-size: 20px;
+}
 .probability-item-name-row {
   display: flex;
   align-items: center;
@@ -634,6 +644,7 @@
   padding: 3px 5px;
   font-size: 12px;
 }
+/* 設定差も小役・モード一覧と同じ、外枠を使わない区切り線ベースの表示。 */
 .probability-diff-editor { margin-top: 9px; }
 .probability-diff-toggle {
   width: 100%;
@@ -643,29 +654,37 @@
   max-height: 56px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 12px;
-  border: 1px solid var(--border, #ddd);
-  border-radius: 9px;
-  background: var(--surface-soft, #f8f8f8);
+  padding: 0 3px;
+  border: 0;
+  border-bottom: 1px solid var(--border, #ddd);
+  border-radius: 0;
+  background: transparent;
   color: var(--text, #222);
+  text-align: left;
   font: inherit;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
 }
-.probability-diff-toggle .accordion-chevron { font-size: 19px; line-height: 1; }
-.probability-diff-toggle[aria-expanded="true"] .accordion-chevron { transform: rotate(180deg); }
-.probability-diff-inputs {
-  margin-top: 6px;
-  padding: 12px;
-  border: 1px solid var(--border, #ddd);
-  border-radius: 9px;
-  background: var(--surface-soft, #f8f8f8);
+.probability-diff-toggle[aria-expanded="true"] .accordion-chevron::after {
+  transform: translateY(2px) rotate(225deg);
 }
-.probability-diff-input-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-.probability-diff-input { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.probability-diff-input span { font-size: 13px; font-weight: 700; }
+.probability-diff-inputs { margin-top: 0; padding: 0; border: 0; background: transparent; }
+.probability-diff-input-grid { display: flex; flex-direction: column; gap: 0; }
+.probability-diff-input {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-width: 0;
+  gap: 12px;
+  padding: 9px 3px;
+  border-bottom: 1px solid var(--border, #ddd);
+}
+.probability-diff-input:last-child { border-bottom: 0; }
+.probability-diff-input span { flex: 0 0 52px; font-size: 13px; font-weight: 700; }
+.probability-diff-input input { flex: 1 1 auto; }
 .probability-diff-input input {
   box-sizing: border-box;
   width: 100%;
@@ -686,11 +705,12 @@
   width: 100%;
   min-height: 40px;
   margin-top: 11px;
-  padding: 7px 11px;
+  padding: 7px 3px;
   text-align: left;
-  border: 1px solid var(--border, #ddd);
-  border-radius: 8px;
-  background: var(--surface-soft, #f8f8f8);
+  border: 0;
+  border-bottom: 1px solid var(--border, #ddd);
+  border-radius: 0;
+  background: transparent;
   color: var(--text, #222);
   font: inherit;
   font-weight: 700;
@@ -699,22 +719,21 @@
 }
 .probability-item-diff-toggle::after { content: "⌄"; float: right; font-size: 16px; }
 .probability-item-diff-toggle[aria-expanded="true"]::after { content: "⌃"; }
-.probability-item-diff-body { margin-top: 5px; }
+.probability-item-diff-body { margin-top: 0; }
 .probability-item-diff-list {
   margin: 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: 70px minmax(0, 1fr);
   gap: 0 12px;
-  border: 1px solid var(--border, #ddd);
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--surface-soft, #f8f8f8);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 .probability-item-diff-list dt, .probability-item-diff-list dd {
   margin: 0;
-  padding: 8px 10px;
+  padding: 10px 3px;
   overflow-wrap: anywhere;
   border-bottom: 1px solid var(--border, #ddd);
 }
