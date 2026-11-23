@@ -670,7 +670,8 @@ function renderModeSettings() {
     chevron.setAttribute("aria-hidden", "true");
     toggle.append(label, chevron);
     toggle.addEventListener("click", () => {
-      machineSettingsOpen = false;
+      // 機種設定内のモード詳細から戻るときも、機種設定の一覧に復帰する。
+      machineSettingsOpen = true;
       editingModeId = mode.id;
       renderSettings();
       appContent.scrollTop = 0;

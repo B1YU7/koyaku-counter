@@ -257,6 +257,43 @@
             <span>機種設定</span><span class="settings-machine-open-arrow" aria-hidden="true">›</span>
           </button>
 
+          <!-- 全機種で共有する設定 -->
+          <section class="global-settings-group" aria-labelledby="global-settings-heading">
+            <h2 id="global-settings-heading">全体設定</h2>
+            <!-- 画面テーマ設定 -->
+            <div class="theme-setting">
+              <span class="theme-setting-label">画面テーマ</span>
+              <div class="theme-toggle">
+                <button type="button" class="theme-option" id="light-theme"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg><span>ライト</span></button>
+                <button type="button" class="theme-option" id="dark-theme"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 13a8.5 8.5 0 0 1-9.5-9.5A8.5 8.5 0 1 0 20.5 13Z"></path></svg><span>ダーク</span></button>
+              </div>
+            </div>
+          </section>
+          </div><!-- 設定一覧 -->
+
+          <!-- 機種設定は一覧から遷移して表示する専用画面 -->
+          <section id="settings-machine-detail" class="settings-machine-detail" aria-label="機種設定" hidden>
+            <div class="settings-machine-detail-header">
+              <button type="button" id="settings-machine-back" class="settings-mode-back">← 戻る</button>
+              <h2>機種設定</h2>
+            </div>
+          <!-- 機種もモードと同様に、一覧で選択して右上の上下ボタンで並び替える。 -->
+          <div id="machine-settings-overview">
+            <section class="machine-settings-group" aria-label="機種一覧">
+              <div class="machine-settings-heading">
+                <h3>機種</h3>
+              </div>
+              <div id="machine-settings-list" class="machine-settings-list"></div>
+              <button type="button" class="button add-button machine-add-button" id="machine-add">＋ 機種を追加</button>
+            </section>
+            <section class="machine-settings-group" aria-label="機種プリセット">
+              <button type="button" class="machine-export-button" id="machine-export">現在の機種をエクスポート</button>
+              <button type="button" class="machine-import-button" id="machine-import">プリセットをインポート</button>
+              <input type="file" id="machine-import-file" accept=".json,.koyaku.json,application/json" aria-label="機種プリセットファイルを選択" hidden>
+              <p class="machine-settings-note">書き出し・読み込みの対象は機種の構成・カスタム計算・表示設定だけです。カウント値・総ゲーム数・履歴・メモは含みません。読み込んだ機種は新規追加されます。</p>
+              <p class="machine-settings-note">機種の切り替えは画面上部から行えます。</p>
+            </section>
+
           <!-- 共通は独立した枠で展開。モードは別の1つの枠にまとめる。 -->
           <section class="settings-accordion counter-settings-group" aria-label="全モード共通">
             <button type="button" id="common-settings-toggle" class="settings-accordion-toggle"
@@ -275,9 +312,9 @@
             <button type="button" class="button add-button" id="add-mode">＋ モードを追加</button>
           </section>
 
-          <!-- 機種別表示設定は機種を切り替えると切り替わる -->
-          <div class="display-settings-group" role="group" aria-label="機種別設定">
-            <h2 class="machine-display-heading">機種別設定</h2>
+          <!-- 機種別の表示設定。機種を切り替えると内容も切り替わる -->
+          <div class="display-settings-group" role="group" aria-label="設定">
+            <h2 class="machine-display-heading">設定</h2>
             <!-- 縦表示・横表示でカウンターの横並び数を独立して設定する -->
             <div class="column-setting">
               <label class="column-setting-label" for="counter-columns-portrait">縦表示の横並び数</label>
@@ -328,43 +365,6 @@
             </div>
 
           </div>
-
-          <!-- 全機種で共有する設定 -->
-          <section class="global-settings-group" aria-labelledby="global-settings-heading">
-            <h2 id="global-settings-heading">全体設定</h2>
-            <!-- 画面テーマ設定 -->
-            <div class="theme-setting">
-              <span class="theme-setting-label">画面テーマ</span>
-              <div class="theme-toggle">
-                <button type="button" class="theme-option" id="light-theme"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg><span>ライト</span></button>
-                <button type="button" class="theme-option" id="dark-theme"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 13a8.5 8.5 0 0 1-9.5-9.5A8.5 8.5 0 1 0 20.5 13Z"></path></svg><span>ダーク</span></button>
-              </div>
-            </div>
-          </section>
-          </div><!-- 設定一覧 -->
-
-          <!-- 機種設定は一覧から遷移して表示する専用画面 -->
-          <section id="settings-machine-detail" class="settings-machine-detail" aria-label="機種設定" hidden>
-            <div class="settings-machine-detail-header">
-              <button type="button" id="settings-machine-back" class="settings-mode-back">← 戻る</button>
-              <h2>機種設定</h2>
-            </div>
-          <!-- 機種もモードと同様に、一覧で選択して右上の上下ボタンで並び替える。 -->
-          <div id="machine-settings-overview">
-            <section class="machine-settings-group" aria-label="機種一覧">
-              <div class="machine-settings-heading">
-                <h3>機種</h3>
-              </div>
-              <div id="machine-settings-list" class="machine-settings-list"></div>
-              <button type="button" class="button add-button machine-add-button" id="machine-add">＋ 機種を追加</button>
-            </section>
-            <section class="machine-settings-group" aria-label="機種プリセット">
-              <button type="button" class="machine-export-button" id="machine-export">現在の機種をエクスポート</button>
-              <button type="button" class="machine-import-button" id="machine-import">プリセットをインポート</button>
-              <input type="file" id="machine-import-file" accept=".json,.koyaku.json,application/json" aria-label="機種プリセットファイルを選択" hidden>
-              <p class="machine-settings-note">書き出し・読み込みの対象は機種の構成・カスタム計算・表示設定だけです。カウント値・総ゲーム数・履歴・メモは含みません。読み込んだ機種は新規追加されます。</p>
-              <p class="machine-settings-note">機種の切り替えは画面上部から行えます。</p>
-            </section>
           </div>
 
           <!-- 一覧の機種名を押すとこの詳細に進み、名前変更と削除を行う。 -->

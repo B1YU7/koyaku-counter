@@ -215,7 +215,7 @@ function calculateFormula(tokens, syntaxOnly = false) {
     if (syntaxOnly) return { valid: true, value };
     if (missingCounter) return { valid: true, value: null, note: "対象の小役が存在しません" };
     if (missing) return { valid: true, value: null, note: "総ゲーム数が未入力です" };
-    if (dividedByZero || !Number.isFinite(value)) return { valid: true, value: null, note: "0で割る計算はできません" };
+    if (dividedByZero || !Number.isFinite(value)) return { valid: true, value: null, note: "" };
     if (value <= 0) return { valid: true, value: null, note: "計算結果が0以下のため表示できません" };
     return { valid: true, value };
   } catch (error) {
@@ -227,7 +227,7 @@ function calculateFormula(tokens, syntaxOnly = false) {
 function probabilityResult(tokens, displayFormat = "fraction") {
   const result = calculateFormula(tokens);
   if (!result.valid || result.value === null) {
-    return { main: "—", note: result.note || "計算できません" };
+    return { main: "—", note: result.note ?? "計算できません" };
   }
   if (normalizedProbabilityFormat(displayFormat) === "percent") {
     return { main: `${(result.value * 100).toFixed(1)}%`, note: "" };
