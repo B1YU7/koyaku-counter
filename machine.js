@@ -75,7 +75,7 @@ function confirmMachineNavigation() {
   return !hasUncommittedMachineEdits() ||
     window.confirm("保存していない計算式があります。変更を破棄して機種を切り替えますか？");
 }
-function setActiveMachine(id) {
+function setActiveMachine(id, openDetail = machineSettingsOpen) {
   if (id === activeMachineId || !machines.some(item => item.id === id)) return false;
   if (!confirmMachineNavigation()) return false;
   // 旧データに手を加えず、移動先のIDだけ保存する。再起動で表示と参照を一括更新する。
@@ -83,7 +83,8 @@ function setActiveMachine(id) {
   // タブは画面を切り替えた位置に復元する。端末全体に保存はしない。
   sessionStorage.setItem("counterMachineTabRestoreV1",
     document.querySelector(".tab-button.active")?.dataset.tab || "counter");
-  if (machineSettingsOpen) sessionStorage.setItem("counterMachineSettingsRestoreV1", "machine");
+  if (openDetail) sessionStorage.setItem("counterMachineSettingsRestoreV1", "detail");
+  else sessionStorage.removeItem("counterMachineSettingsRestoreV1");
   window.location.reload();
   return true;
 }
@@ -175,8 +176,15 @@ function renderMachineSettings() {
     arrow.setAttribute("aria-hidden", "true");
     toggle.append(label, arrow);
     toggle.addEventListener("click", () => {
+      // 機種別の編集内容と保存先を一致させる。別機種なら切替後に詳細を復元する。
+      if (machine.id !== activeMachineId) {
+        try { setActiveMachine(machine.id, true); }
+        catch (error) { console.error(error); window.alert("機種を切り替えられませんでした。"); }
+        return;
+      }
       editingMachineId = machine.id;
-      renderMachineSettings();
+      machineSettingsOpen = true;
+      renderSettings();
       appContent.scrollTop = 0;
       settingsMachineBack.focus({ preventScroll: true });
     });
@@ -220,10 +228,11 @@ function deleteEditingMachine() {
   if (reorderSelectedMachineId === machine.id) reorderSelectedMachineId = null;
   if (wasActive) {
     sessionStorage.setItem("counterMachineTabRestoreV1", "settings");
-    sessionStorage.setItem("counterMachineSettingsRestoreV1", "machine");
+    sessionStorage.removeItem("counterMachineSettingsRestoreV1");
     window.location.reload();
   } else {
-    renderMachineSettings();
+    machineSettingsOpen = false;
+    renderSettings();
     renderMachineSelect();
   }
 }
@@ -272,7 +281,7 @@ function initMachineControls() {
       saveMachineRegistry();
       localStorage.setItem(ACTIVE_MACHINE_KEY, machine.id);
       sessionStorage.setItem("counterMachineTabRestoreV1", "settings");
-      sessionStorage.setItem("counterMachineSettingsRestoreV1", "machine");
+      sessionStorage.removeItem("counterMachineSettingsRestoreV1");
       window.location.reload();
     } catch (error) {
       machines.pop();
@@ -735,7 +744,7 @@ function importMachinePreset(preset) {
     // タブ表示は設定に戻す。セッション保存に失敗してもインポート自体は可能。
     try {
       sessionStorage.setItem("counterMachineTabRestoreV1", "settings");
-      sessionStorage.setItem("counterMachineSettingsRestoreV1", "machine");
+      sessionStorage.removeItem("counterMachineSettingsRestoreV1");
     } catch (_) { /* 表示のみ */ }
     localStorage.setItem(ACTIVE_MACHINE_KEY, id);
     activeUpdated = true;

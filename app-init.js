@@ -41,10 +41,12 @@ rotateLayoutButton.addEventListener("click", () => {
 });
 applyManualLayout();
 initMachineControls();
-// 機種追加・削除・切替・インポート後も機種設定画面を復元する。
-if (sessionStorage.getItem("counterMachineSettingsRestoreV1") === "machine") {
-  sessionStorage.removeItem("counterMachineSettingsRestoreV1");
+// 一覧から別機種の設定を開くときだけ、切替後にその詳細を復元する。
+const restoredMachineDetail = sessionStorage.getItem("counterMachineSettingsRestoreV1");
+sessionStorage.removeItem("counterMachineSettingsRestoreV1");
+if (restoredMachineDetail === "detail" && sessionStorage.getItem("counterMachineTabRestoreV1") === "settings") {
   machineSettingsOpen = true;
+  editingMachineId = activeMachineId;
 }
 // 機種切替で再起動しても開いていたタブへ戻す。
 const restoredMachineTab = sessionStorage.getItem("counterMachineTabRestoreV1");

@@ -236,7 +236,6 @@ const commonSettingsContent = document.getElementById("common-settings-content")
 const modeSettingsList = document.getElementById("mode-settings-list");
 const settingsOverview = document.getElementById("settings-overview");
 const settingsMachineDetail = document.getElementById("settings-machine-detail");
-const settingsMachineOpen = document.getElementById("settings-machine-open");
 const settingsMachineBack = document.getElementById("settings-machine-back");
 const settingsModeDetail = document.getElementById("settings-mode-detail");
 const settingsModeDetailTitle = document.getElementById("settings-mode-detail-title");
@@ -299,48 +298,132 @@ function saveCounters() {
 }
 
 // ===================================
-// 全カウンターリセット
+// リセットの連動：全機種共通の設定（初期値はOFF）
 // ===================================
 
-resetAllButton.addEventListener("click", function() {
+const RESET_LINK_STORAGE_KEY = "counterResetMemoLinkedV1";
+let resetMemoLinked = localStorage.getItem(RESET_LINK_STORAGE_KEY) === "1";
+const resetLinkButtons = document.querySelectorAll("[data-reset-link]");
 
-  // 実行前に確認する
-  const confirmed = window.confirm(
-    "現在の機種の全カウンター・総ゲーム数・履歴をリセットします。\nほかの機種のデータは変更されません。\nよろしいですか？"
-  );
-
-  if (!confirmed) return;
-
-  // 選択中の機種の総ゲーム数だけを0にする。他機種には触れない。
-  // 保存失敗時に画面の値を消さないよう、保存を先に行う。
-  try {
-    machineStorage.setItem(GAMES_STORAGE_KEY, "0");
-  } catch (error) {
-    console.error("総ゲーム数のリセットを保存できませんでした", error);
-    window.alert("総ゲーム数を保存できなかったため、リセットを中止しました。");
-    return;
-  }
-  totalGamesInput.value = "0";
-
-  // カウントを0にする（名前・色・並び順は残す）
-  counters.forEach(counterData => {
-    counterData.count = 0;
+function updateResetLinkButtons() {
+  resetLinkButtons.forEach(button => {
+    const selected = (button.dataset.resetLink === "on") === resetMemoLinked;
+    button.classList.toggle("active", selected);
+    button.setAttribute("aria-pressed", String(selected));
   });
+}
 
-  countHistory = { past: [], future: [] };
-  historyShown = HISTORY_PAGE_SIZE;
-  saveCounters();
-
-  saveCountHistory();
-  renderCounters();
-  renderCountHistory();
-  scrollHistoryToTop();
-
+resetLinkButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    const next = button.dataset.resetLink === "on";
+    try {
+      // 保存に失敗した場合は表示だけ切り替わらないよう、先に保存する。
+      localStorage.setItem(RESET_LINK_STORAGE_KEY, next ? "1" : "0");
+      resetMemoLinked = next;
+      updateResetLinkButtons();
+    } catch (error) {
+      console.error("リセット連動の設定を保存できませんでした", error);
+      window.alert("リセット連動の設定を保存できませんでした。");
+    }
+  });
 });
-
+updateResetLinkButtons();
 
 // ===================================
-// メモ：入力の自動保存と個別リセット
+// リセット処理：ヘッダーの全カウンター／メモのリセットだけを連動
+// 個々の小役の数値編集ダイアログからのリセットは対象外。
+// ===================================
+
+function resetCurrentMachineData(resetCountersToo, resetMemoToo) {
+  const changes = [];
+  if (resetCountersToo) {
+    const clearedCounters = counters.map(item => ({ ...item, count: 0 }));
+    const serializedCounters = JSON.stringify(clearedCounters);
+    changes.push([GAMES_STORAGE_KEY, "0"]);
+    changes.push([STORAGE_KEY, serializedCounters]);
+    changes.push([COUNTER_RECOVERY_KEY, serializedCounters]);
+    changes.push([HISTORY_STORAGE_KEY, JSON.stringify({ past: [], future: [] })]);
+  }
+  if (resetMemoToo) changes.push([MEMO_STORAGE_KEY, ""]);
+
+  // 保存成功までは画面・実行中のカウント値・メモを変更しない。
+  // 複数キーの保存途中で失敗した場合は、元の値へ戻す。
+  const previous = new Map();
+  const written = [];
+  try {
+    for (const [key] of changes) previous.set(key, machineStorage.getItem(key));
+    for (const [key, value] of changes) {
+      machineStorage.setItem(key, value);
+      written.push(key);
+    }
+  } catch (error) {
+    console.error("リセットしたデータを保存できませんでした", error);
+    let rollbackFailed = false;
+    for (const key of written.reverse()) {
+      try {
+        const original = previous.get(key);
+        if (original === null) machineStorage.removeItem(key);
+        else machineStorage.setItem(key, original);
+      } catch (restoreError) {
+        rollbackFailed = true;
+        console.error("リセット前のデータを復元できませんでした", restoreError);
+      }
+    }
+    window.alert(rollbackFailed
+      ? "保存に失敗し、一部のデータを元に戻せませんでした。アプリのデータを確認してください。"
+      : "保存に失敗したため、リセットを中止しました。");
+    return false;
+  }
+
+  if (resetCountersToo) {
+    counters.forEach(item => { item.count = 0; });
+    countHistory = { past: [], future: [] };
+    historyShown = HISTORY_PAGE_SIZE;
+    totalGamesInput.value = "0";
+    // メモ画面から連動リセットした場合は、カウンタータブに戻った時だけ描画する。
+    if (!mainScreen.hidden) {
+      renderCounters();
+      renderCountHistory();
+      scrollHistoryToTop();
+    }
+  }
+  if (resetMemoToo) memoInput.value = "";
+  return true;
+}
+
+// 確認文をアプリ内で描画し、iOSのテキスト選択を禁止する。
+const resetConfirmDialog = document.getElementById("reset-confirm-dialog");
+const resetConfirmMessage = document.getElementById("reset-confirm-message");
+let pendingReset = null;
+for (const eventName of ["contextmenu", "selectstart", "copy"]) {
+  resetConfirmDialog.addEventListener(eventName, event => event.preventDefault());
+}
+function requestMachineReset(resetCountersToo, resetMemoToo, source) {
+  if (resetConfirmDialog.open) return;
+  const machineName = getActiveMachine()?.name.trim() || "名前なし";
+  let message = source === "memo"
+    ? "メモをリセットしますか？"
+    : `「${machineName}」のカウンターをリセットしますか？`;
+  if (resetCountersToo && resetMemoToo) {
+    message = `「${machineName}」のカウンターとメモをリセットしますか？`;
+  }
+  resetConfirmMessage.textContent = message;
+  resetConfirmDialog.returnValue = "cancel";
+  pendingReset = { machineId: activeMachineId, resetCountersToo, resetMemoToo };
+  resetConfirmDialog.showModal();
+}
+resetConfirmDialog.addEventListener("cancel", () => { pendingReset = null; });
+resetConfirmDialog.addEventListener("close", () => {
+  const request = pendingReset;
+  pendingReset = null;
+  if (resetConfirmDialog.returnValue === "reset" && request?.machineId === activeMachineId) {
+    resetCurrentMachineData(request.resetCountersToo, request.resetMemoToo);
+  }
+});
+resetAllButton.addEventListener("click", () => requestMachineReset(true, resetMemoLinked, "counter"));
+
+// ===================================
+// メモ：入力の自動保存と個別／連動リセット
 // ===================================
 
 const MEMO_STORAGE_KEY = "counterMemo";
@@ -364,17 +447,7 @@ memoInput.addEventListener("input", function() {
   machineStorage.setItem(MEMO_STORAGE_KEY, memoInput.value);
 });
 
-// 現在の機種のメモだけを削除する（他機種には触れない）。
-resetMemoButton.addEventListener("click", function() {
-  const confirmed = window.confirm(
-    "この機種のメモをすべて削除します。\nよろしいですか？"
-  );
-
-  if (!confirmed) return;
-
-  memoInput.value = "";
-  machineStorage.setItem(MEMO_STORAGE_KEY, "");
-});
+resetMemoButton.addEventListener("click", () => requestMachineReset(resetMemoLinked, true, "memo"));
 
 
 // ===================================
@@ -408,6 +481,7 @@ function selectTab(tabName) {
     return;
   }
 
+  appContent.classList.toggle("memo-view", tabName === "memo");
   Object.entries(tabScreens).forEach(([name, screen]) => {
     screen.hidden = name !== tabName;
   });

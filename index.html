@@ -253,19 +253,35 @@
         <section id="settings-screen" class="tab-panel" role="tabpanel" aria-labelledby="tab-settings" hidden>
           <div id="settings-overview">
 
-          <button type="button" id="settings-machine-open" class="settings-machine-open" aria-controls="settings-machine-detail">
-            <span>機種設定</span><span class="settings-machine-open-arrow" aria-hidden="true">›</span>
-          </button>
+          <!-- 機種もモードと同様に、一覧で選択して右上の上下ボタンで並び替える。 -->
+          <div id="machine-settings-overview">
+            <section class="machine-settings-group" aria-label="機種一覧">
+              <div class="machine-settings-heading">
+                <h3>機種設定</h3>
+              </div>
+              <div id="machine-settings-list" class="machine-settings-list"></div>
+              <button type="button" class="button add-button machine-add-button" id="machine-add">＋ 機種を追加</button>
+            </section>
+
+          </div>
 
           <!-- 全機種で共有する設定 -->
           <section class="global-settings-group" aria-labelledby="global-settings-heading">
             <h2 id="global-settings-heading">全体設定</h2>
-            <!-- 画面テーマ設定 -->
+            <!-- 全体設定の二択は同一の表示・操作形式で統一する。 -->
             <div class="theme-setting">
-              <span class="theme-setting-label">画面テーマ</span>
-              <div class="theme-toggle">
-                <button type="button" class="theme-option" id="light-theme"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg><span>ライト</span></button>
-                <button type="button" class="theme-option" id="dark-theme"><svg class="ui-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 13a8.5 8.5 0 0 1-9.5-9.5A8.5 8.5 0 1 0 20.5 13Z"></path></svg><span>ダーク</span></button>
+              <span class="theme-setting-label" id="theme-label">画面テーマ</span>
+              <div class="theme-toggle" role="group" aria-labelledby="theme-label">
+                <button type="button" class="theme-option" id="light-theme" aria-pressed="true">ライト</button>
+                <button type="button" class="theme-option" id="dark-theme" aria-pressed="false">ダーク</button>
+              </div>
+            </div>
+            <!-- ONならヘッダーのどちらのリセットからも両方を初期化。全機種共通の選択。 -->
+            <div class="theme-setting reset-link-setting">
+              <span class="theme-setting-label" id="reset-link-label">リセットの連動</span>
+              <div class="theme-toggle" role="group" aria-labelledby="reset-link-label">
+                <button type="button" class="theme-option reset-link-option" data-reset-link="off" aria-pressed="true">しない</button>
+                <button type="button" class="theme-option reset-link-option" data-reset-link="on" aria-pressed="false">する</button>
               </div>
             </div>
           </section>
@@ -289,15 +305,14 @@
               <button type="button" id="settings-machine-back" class="settings-mode-back">← 戻る</button>
               <h2>機種設定</h2>
             </div>
-          <!-- 機種もモードと同様に、一覧で選択して右上の上下ボタンで並び替える。 -->
-          <div id="machine-settings-overview">
-            <section class="machine-settings-group" aria-label="機種一覧">
-              <div class="machine-settings-heading">
-                <h3>機種</h3>
-              </div>
-              <div id="machine-settings-list" class="machine-settings-list"></div>
-              <button type="button" class="button add-button machine-add-button" id="machine-add">＋ 機種を追加</button>
+          <!-- 一覧の機種名を押すとこの詳細に進み、名前変更・削除と機種ごとの設定を行う。 -->
+          <div id="machine-edit-detail" class="machine-edit-detail" hidden>
+            <section class="machine-settings-group" aria-label="機種名の編集">
+              <label for="machine-name-input">機種名</label>
+              <input id="machine-name-input" type="text" maxlength="40" autocomplete="off" aria-label="機種名">
+              <button type="button" class="machine-delete-button" id="machine-delete">削除</button>
             </section>
+          </div>
 
           <!-- 共通は独立した枠で展開。モードは別の1つの枠にまとめる。 -->
           <section class="settings-accordion counter-settings-group" aria-label="全モード共通">
@@ -372,16 +387,6 @@
 
 
           </div>
-          </div>
-
-          <!-- 一覧の機種名を押すとこの詳細に進み、名前変更と削除を行う。 -->
-          <div id="machine-edit-detail" class="machine-edit-detail" hidden>
-            <section class="machine-settings-group" aria-label="機種名の編集">
-              <label for="machine-name-input">機種名</label>
-              <input id="machine-name-input" type="text" maxlength="40" autocomplete="off" aria-label="機種名">
-              <button type="button" class="machine-delete-button" id="machine-delete">削除</button>
-            </section>
-          </div>
 
           </section>
 
@@ -428,6 +433,15 @@
     </nav>
 
   </div>
+
+  <!-- リセット確認はブラウザー標準 confirm ではなく選択できないアプリ内ダイアログ。 -->
+  <dialog id="reset-confirm-dialog" class="reset-confirm-dialog" aria-labelledby="reset-confirm-message">
+    <p id="reset-confirm-message"></p>
+    <form method="dialog" class="count-edit-actions reset-confirm-actions">
+      <button type="submit" value="cancel" class="count-edit-cancel" autofocus>キャンセル</button>
+      <button type="submit" value="reset" class="count-edit-reset">リセット</button>
+    </form>
+  </dialog>
 
   <!-- プリセット読み込み前に構成を確認し、既存の機種を上書きしない -->
   <dialog id="machine-import-dialog" class="machine-import-dialog" aria-labelledby="machine-import-title" aria-describedby="machine-import-description">

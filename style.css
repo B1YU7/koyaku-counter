@@ -89,7 +89,7 @@ h1 {
   --counter-size: 78px;
   --counter-gap: 22px;
   column-gap: var(--counter-gap);
-  row-gap: 16px;
+  row-gap: 12px;
   /* 設定列数だけを1行に収め、端数行も中央に寄せる。 */
   width: 100%;
   max-width: calc(var(--counter-row-width, 78px) + 16px);
@@ -657,7 +657,7 @@ h1 {
   .counter-list {
     /* スマホの4列で従来の最大63pxから68pxへ。狭い端末だけは収まる大きさに調整。 */
     --counter-size: min(68px, calc((100cqi - 18px - 3 * var(--counter-gap)) / 4));
-    row-gap: 12px;
+    row-gap: 8px;
   }
   /* 4列時の文字サイズを列数に関係なく維持。 */
   .counter-item .title { font-size: 12px; }

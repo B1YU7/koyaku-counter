@@ -177,7 +177,7 @@
 .landscape-mode .counter-list {
   /* 回転後の表示幅に合わせ、6列でも折り返さない範囲で68pxを維持。 */
   --counter-size: min(68px, calc((100cqi - 18px - 5 * var(--counter-gap)) / 6));
-  row-gap: 6px;
+  row-gap: 4px;
 }
 .landscape-mode .total-games-row { margin: 8px 0 14px; }
 .landscape-mode .count-mode-row { margin-bottom: 10px; }

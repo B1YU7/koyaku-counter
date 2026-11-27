@@ -367,6 +367,10 @@
   .global-settings-group .theme-toggle { width: 155px; flex: 0 1 155px; }
   .global-settings-group .theme-setting-label { font-size: 13px; }
 }
+/* 横幅が狭い端末でも二つの選択欄を同じ幅に保つ。 */
+@media (max-width: 350px) {
+  .global-settings-group .theme-toggle { width: 140px; flex: 0 0 140px; }
+}
 
 /* ヘッダーの既存flex横並びを縦並びにし、タイトルの中央位置を保持する。 */
 .app-header {
@@ -814,3 +818,72 @@
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* v63: 全体設定のリセット連動を画面テーマと同じ二択・行高にする。 */
+.global-settings-group .reset-link-setting {
+  border-top: 1px solid var(--border, #ddd);
+}
+
+
+/* v65: メモは固定ヘッダーと下部タブの間全体を使い、長文は入力欄内でスクロール。 */
+#app-content.memo-view {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+#app-content.memo-view > .content-inner {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  padding: 0;
+}
+#app-content.memo-view #memo-screen { height: 100%; }
+#app-content.memo-view #memo-input {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  resize: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  -webkit-user-select: text;
+  user-select: text;
+}
+#app-content.memo-view #memo-input:focus-visible { outline-offset: -2px; }
+
+/* リセット確認文・操作ボタンは長押し選択不可。 */
+.reset-confirm-dialog {
+  width: min(92vw, 340px);
+  max-width: 340px;
+  padding: 20px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  color: var(--text, #222);
+  box-shadow: 0 10px 36px #0004;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.reset-confirm-dialog::backdrop { background: rgba(0,0,0,.58); }
+.reset-confirm-dialog * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+#reset-confirm-message { margin: 0 0 18px; line-height: 1.5; overflow-wrap: anywhere; }
+.reset-confirm-actions { display: flex; gap: 10px; padding-top: 0; }
+.reset-confirm-actions button { flex: 1 1 0; min-height: 44px; }
+.landscape-mode .reset-confirm-dialog[open] {
+  position: fixed;
+  top: 50%; left: 50%; margin: 0;
+  width: min(340px, calc(100dvh - 26px));
+  max-height: calc(100dvw - 20px);
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+/* 機種一覧を設定トップに直接表示する。 */
+#settings-overview > #machine-settings-overview { margin-bottom: 20px; }

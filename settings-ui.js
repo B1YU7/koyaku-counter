@@ -429,7 +429,7 @@ function renderSettings() {
   if (!editingMode) editingModeId = null;
   settingsOverview.hidden = !!editingModeId || machineSettingsOpen;
   settingsMachineDetail.hidden = !machineSettingsOpen || !!editingModeId;
-  if (machineSettingsOpen && !editingModeId) renderMachineSettings();
+  if (!editingModeId) renderMachineSettings();
   settingsModeDetail.hidden = !editingModeId;
   settingsModeDetailContent.replaceChildren();
   if (editingModeId) {
@@ -684,26 +684,17 @@ function renderModeSettings() {
   updateModeReorderSelection();
 }
 
-// 機種設定へは設定一覧から遷移し、戻る操作で一覧へ戻す。
-settingsMachineOpen.addEventListener("click", () => {
-  editingModeId = null;
-  editingMachineId = null;
-  machineSettingsOpen = true;
-  renderSettings();
-  appContent.scrollTop = 0;
-  settingsMachineBack.focus({ preventScroll: true });
-});
+// 機種の詳細画面から設定トップの機種一覧へ戻る。
 settingsMachineBack.addEventListener("click", () => {
-  if (editingMachineId) {
-    editingMachineId = null;
-    renderMachineSettings();
-    appContent.scrollTop = 0;
-    return;
-  }
+  const previousMachineId = editingMachineId;
+  editingMachineId = null;
+  editingModeId = null;
   machineSettingsOpen = false;
   renderSettings();
   appContent.scrollTop = 0;
-  settingsMachineOpen.focus({ preventScroll: true });
+  Array.from(document.querySelectorAll(".machine-settings-item"))
+    .find(row => row.dataset.machineId === previousMachineId)
+    ?.querySelector(".machine-row-toggle")?.focus({ preventScroll: true });
 });
 
 settingsModeDetailTitle.addEventListener("input", () => {
