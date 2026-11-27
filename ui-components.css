@@ -638,8 +638,13 @@
   background: var(--surface-soft, #f5f5f5); 
       cursor: pointer; }
 .counter-mode-tab.active { border-color: var(--text,#333); font-weight: bold; background: var(--surface,#fff); }
-/* カウント値を少し太くする。文字サイズと配置は従来どおり。 */
-.counter-item > .number { font-weight: 800; font-variant-numeric: tabular-nums; }
+/* カウント値とプレビューは端末標準の太字数字に統一。文字サイズと配置は従来どおり。 */
+.counter-item > .number,
+.number-size-preview-number {
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 
 /* 共通カウンターは独立した枠、モードは一つの枠で展開 */
 .settings-accordion { margin-bottom: 20px; }
@@ -673,7 +678,7 @@
   background: var(--surface-soft,#f7f7f7); color: var(--text,#222); font: inherit; font-size: 13px;
   cursor: pointer; white-space: nowrap; }
 .font-size-option.active { border-color: var(--text,#333); background: var(--surface,#fff); font-weight: bold; }
-.number-size-preview-number { font-family: inherit; font-weight: 800; }
+
 @media(max-width: 700px) { .font-size-options { width: 100%; } }
 /* 設定判別の小役メニュー：共通・各モード別に整理 */
 .probability-counter-menu { display: flex; flex-direction: column; gap: 14px; }
