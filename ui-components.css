@@ -191,7 +191,7 @@
   user-select: none;
 }
 .count-history-section {
-  margin-top: 72px; /* カウンター一覧と履歴の間隔を広げる */
+  margin-top: 18px; /* カウンター一覧と履歴の間隔 */
   padding: 16px;
   border: 1px solid var(--border, #ddd);
   border-radius: 12px;
@@ -625,9 +625,9 @@
   padding: 18px 12px 20px;
 }
 .mode-counter-area:has(.counter-list:empty):has(.counter-mode-tabs[hidden]) { display: none; }
-.common-counter-area { margin-bottom: 20px; }
+.common-counter-area { margin-bottom: 5px; }
 .common-counter-area:not([hidden]):has(+ .mode-counter-area > .counter-mode-tabs:not([hidden])) {
-  margin-bottom: 60px;
+  margin-bottom: 15px;
 }
 .counter-area-heading { font-size: 15px; margin: 0 0 14px; color: var(--text, #222); }
 .counter-mode-tabs {  gap: 6px; width: 100%; margin: 16px 0 22px;

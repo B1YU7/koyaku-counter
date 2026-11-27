@@ -293,34 +293,38 @@ function renderProbabilityList() {
     // 成功時の小さな百分率は廃止。入力エラー等の説明だけを残す。
     if (calculated.note) card.appendChild(detail);
 
-    const diffToggle = document.createElement("button");
-    diffToggle.type = "button";
-    diffToggle.className = "probability-item-diff-toggle";
     const values = normalizedSettingDifferences(item.settingDifferences);
     const filled = values.filter(Boolean).length;
-    diffToggle.textContent = filled ? `設定差（${filled}/6）` : "設定差";
-    diffToggle.setAttribute("aria-expanded", String(expandedProbabilityDiffIds.has(item.id)));
-    const diffBody = document.createElement("div");
-    diffBody.className = "probability-item-diff-body";
-    diffBody.hidden = !expandedProbabilityDiffIds.has(item.id);
-    const diffList = document.createElement("dl");
-    diffList.className = "probability-item-diff-list";
-    values.forEach((value, index) => {
-      const term = document.createElement("dt");
-      term.textContent = `設定${index + 1}`;
-      const description = document.createElement("dd");
-      description.textContent = value || "—";
-      diffList.append(term, description);
-    });
-    diffBody.appendChild(diffList);
-    diffToggle.addEventListener("click", () => {
-      const open = diffBody.hidden;
-      diffBody.hidden = !open;
-      diffToggle.setAttribute("aria-expanded", String(open));
-      if (open) expandedProbabilityDiffIds.add(item.id);
-      else expandedProbabilityDiffIds.delete(item.id);
-    });
-    card.append(diffToggle, diffBody);
+    if (filled > 0) {
+      const diffToggle = document.createElement("button");
+      diffToggle.type = "button";
+      diffToggle.className = "probability-item-diff-toggle";
+      diffToggle.textContent = `設定差（${filled}/6）`;
+      diffToggle.setAttribute("aria-expanded", String(expandedProbabilityDiffIds.has(item.id)));
+      const diffBody = document.createElement("div");
+      diffBody.className = "probability-item-diff-body";
+      diffBody.hidden = !expandedProbabilityDiffIds.has(item.id);
+      const diffList = document.createElement("dl");
+      diffList.className = "probability-item-diff-list";
+      values.forEach((value, index) => {
+        const term = document.createElement("dt");
+        term.textContent = `設定${index + 1}`;
+        const description = document.createElement("dd");
+        description.textContent = value || "—";
+        diffList.append(term, description);
+      });
+      diffBody.appendChild(diffList);
+      diffToggle.addEventListener("click", () => {
+        const open = diffBody.hidden;
+        diffBody.hidden = !open;
+        diffToggle.setAttribute("aria-expanded", String(open));
+        if (open) expandedProbabilityDiffIds.add(item.id);
+        else expandedProbabilityDiffIds.delete(item.id);
+      });
+      card.append(diffToggle, diffBody);
+    } else {
+      expandedProbabilityDiffIds.delete(item.id);
+    }
     probabilityItemsElement.appendChild(card);
   });
   updateProbabilityReorderSelection();

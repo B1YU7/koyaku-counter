@@ -924,9 +924,8 @@ button * {
   overflow-wrap: anywhere;
 }
 
-.memo-input:focus-visible {
-  outline: 2px solid var(--text, #222);
-  outline-offset: 2px;
+.memo-input:focus {
+  outline: none;
 }
 
 

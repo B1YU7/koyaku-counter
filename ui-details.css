@@ -5,7 +5,7 @@
 .common-counter-area > .counter-area-heading {
   border-bottom: 1px solid var(--border, #ddd);
   padding-bottom: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
 }
 .counter-settings-heading,
 .mode-settings-heading,
@@ -101,7 +101,8 @@
   font-size: 16px;
   font-weight: 600;
 }
-.settings-mode-delete {
+.settings-mode-delete,
+.machine-delete-button {
   flex: 0 0 auto;
   height: 40px;
   padding: 7px 10px;
@@ -275,18 +276,7 @@
 }
 .machine-settings-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .machine-add-button { flex: 1 1 130px; background: #29865b; }
-.machine-delete-button {
-  flex: 1 1 130px;
-  min-height: 44px;
-  padding: 9px;
-  border: 1px solid #c84a4a;
-  border-radius: 9px;
-  background: var(--surface, #fff);
-  color: #c84a4a;
-  font: inherit;
-  font-weight: bold;
-  cursor: pointer;
-}
+.machine-delete-button { align-self: flex-end; }
 .machine-delete-button:disabled { opacity: .45; cursor: not-allowed; }
 .machine-export-button,
 .machine-import-button {
@@ -852,7 +842,6 @@
   -webkit-user-select: text;
   user-select: text;
 }
-#app-content.memo-view #memo-input:focus-visible { outline-offset: -2px; }
 
 /* リセット確認文・操作ボタンは長押し選択不可。 */
 .reset-confirm-dialog {

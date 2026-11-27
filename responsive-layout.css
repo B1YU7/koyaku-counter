@@ -146,7 +146,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 14px;
+  gap: 3.5px;
   min-width: 0;
 }
 .landscape-mode .counter-work-area {
@@ -155,7 +155,7 @@
   /* 左右2分割を解除し、カウンターの下に履歴を置く。 */
   max-height: none;
   overflow: visible;
-  padding: 0 5px 12px;
+  padding: 0 5px 3px;
 }
 .landscape-mode .count-history-section {
   min-width: 0;
@@ -181,8 +181,8 @@
 }
 .landscape-mode .total-games-row { margin: 8px 0 14px; }
 .landscape-mode .count-mode-row { margin-bottom: 10px; }
-.landscape-mode .common-counter-area { margin-bottom: 12px; }
-.landscape-mode .common-counter-area:not([hidden]):has(+ .mode-counter-area > .counter-mode-tabs:not([hidden])) { margin-bottom: 22px; }
+.landscape-mode .common-counter-area { margin-bottom: 3px; }
+.landscape-mode .common-counter-area:not([hidden]):has(+ .mode-counter-area > .counter-mode-tabs:not([hidden])) { margin-bottom: 5.5px; }
 .landscape-mode .counter-mode-tabs { margin-top: 9px; margin-bottom: 12px; }
 .landscape-mode .memo-input { min-height: 175px; }
 /* native dialogは最上位レイヤーなので本体と別に回転させる */
