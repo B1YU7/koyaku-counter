@@ -12,7 +12,7 @@ const MIN_COUNTERS = 1;
 // 小役ごとのカウント値は3桁（0〜999）まで。総ゲーム数には適用しない。
 const MAX_COUNT_VALUE = 999;
 
-const DEFAULT_COUNTER_COLOR = "#647F91"; // 明暗どちらの画面でも背景と区別しやすい中間色
+const DEFAULT_COUNTER_COLOR = "#617C8E"; // 明暗どちらの画面でも背景と区別しやすい中間色
 
 const STORAGE_KEY = "counters";
 const OLD_STORAGE_KEY = "counterCount";

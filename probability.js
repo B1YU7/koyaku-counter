@@ -26,6 +26,26 @@ const probabilityNumberError = document.getElementById("probability-number-error
 const probabilityDiffToggle = document.getElementById("probability-diff-toggle");
 const probabilityDiffInputs = document.getElementById("probability-diff-inputs");
 const probabilityDiffFields = [...document.querySelectorAll("[data-setting-index]")];
+// 保存済みの値は編集するまで変更しない。分子が1以外の数値は等価な分母で表示する。
+function normalizeSettingDifferenceNumber(value) {
+  return value.replace(/[０-９]/g, ch => String(ch.charCodeAt(0) - 0xFF10)).replace(/．/g, ".");
+}
+function isSettingDifferenceNumber(value) {
+  return /^(?:\d+(?:\.\d*)?|\.\d+)$/.test(value) && Number.isFinite(Number(value));
+}
+function settingDifferenceDenominator(value) {
+  if (!value) return "";
+  const parts = value.split(/[/／]/).map(part => normalizeSettingDifferenceNumber(part.trim()));
+  if (parts.length === 1) return isSettingDifferenceNumber(parts[0]) ? parts[0] : null;
+  if (parts.length !== 2) return null;
+  const [numerator, denominator] = parts;
+  if (!isSettingDifferenceNumber(numerator) || !isSettingDifferenceNumber(denominator)) return null;
+  const n = Number(numerator), d = Number(denominator);
+  if (n === 1) return denominator;
+  const result = d / n;
+  const text = String(result);
+  return n > 0 && d > 0 && isSettingDifferenceNumber(text) ? text : null;
+}
 const probabilityUndoButton = document.getElementById("probability-undo");
 const probabilityClearButton = document.getElementById("probability-clear");
 const probabilityPreviewValue = document.getElementById("probability-preview-value");
@@ -214,7 +234,7 @@ function calculateFormula(tokens, syntaxOnly = false) {
     if (pos !== tokens.length) throw new Error("計算式の並びを確認してください");
     if (syntaxOnly) return { valid: true, value };
     if (missingCounter) return { valid: true, value: null, note: "対象の小役が存在しません" };
-    if (missing) return { valid: true, value: null, note: "総ゲーム数が未入力です" };
+    if (missing) return { valid: true, value: null, note: "" };
     if (dividedByZero || !Number.isFinite(value)) return { valid: true, value: null, note: "" };
     if (value <= 0) return { valid: true, value: null, note: "計算結果が0以下のため表示できません" };
     return { valid: true, value };
@@ -299,7 +319,7 @@ function renderProbabilityList() {
       const diffToggle = document.createElement("button");
       diffToggle.type = "button";
       diffToggle.className = "probability-item-diff-toggle";
-      diffToggle.textContent = `設定差（${filled}/6）`;
+      diffToggle.textContent = "設定差";
       diffToggle.setAttribute("aria-expanded", String(expandedProbabilityDiffIds.has(item.id)));
       const diffBody = document.createElement("div");
       diffBody.className = "probability-item-diff-body";
@@ -404,7 +424,11 @@ function openProbabilityEditor(id = null) {
     settingDifferences: JSON.stringify(probabilityDraft.settingDifferences)
   };
   probabilityDiffFields.forEach(field => {
-    field.value = probabilityDraft.settingDifferences[Number(field.dataset.settingIndex)];
+    const index = Number(field.dataset.settingIndex);
+    const original = probabilityDraft.settingDifferences[index];
+    const denominator = settingDifferenceDenominator(original);
+    field.value = denominator ?? "";
+    field.dataset.lastInput = field.value;
   });
   probabilityDiffInputs.hidden = true;
   probabilityDiffToggle.setAttribute("aria-expanded", "false");
@@ -459,11 +483,29 @@ probabilityDiffToggle.addEventListener("click", () => {
   probabilityDiffInputs.hidden = !open;
   probabilityDiffToggle.setAttribute("aria-expanded", String(open));
 });
-probabilityDiffFields.forEach(field => field.addEventListener("input", () => {
-  if (!probabilityDraft) return;
-  const index = Number(field.dataset.settingIndex);
-  probabilityDraft.settingDifferences[index] = field.value.replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 40);
-}));
+probabilityDiffFields.forEach(field => {
+  field.addEventListener("input", () => {
+    if (!probabilityDraft) return;
+    const index = Number(field.dataset.settingIndex);
+    // 入力欄には数字と小数点のみ。保存形式は従来の「1/分母」を維持する。
+    const value = normalizeSettingDifferenceNumber(field.value);
+    if (value.length > 38 || !/^\d*(?:\.\d*)?$/.test(value)) {
+      field.value = field.dataset.lastInput ?? "";
+      return;
+    }
+    if (field.value !== value) field.value = value;
+    field.dataset.lastInput = value;
+    if (value === ".") return; // 小数入力の途中。保存値はまだ変更しない。
+    if (value && !isSettingDifferenceNumber(value)) return;
+    probabilityDraft.settingDifferences[index] = value ? `1/${value}` : "";
+  });
+  field.addEventListener("blur", () => {
+    if (!probabilityDraft || field.value !== ".") return;
+    const index = Number(field.dataset.settingIndex);
+    field.value = settingDifferenceDenominator(probabilityDraft.settingDifferences[index]) ?? "";
+    field.dataset.lastInput = field.value;
+  });
+});
 // 数字は計算式の定数として保存する。総ゲーム数・小役の保存値には触れない。
 probabilityNumberInput.addEventListener("input", () => {
   probabilityNumberError.hidden = true;

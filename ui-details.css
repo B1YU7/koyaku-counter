@@ -668,17 +668,24 @@
 .probability-diff-inputs { margin-top: 0; padding: 0; border: 0; background: transparent; }
 .probability-diff-input-grid { display: flex; flex-direction: column; gap: 0; }
 .probability-diff-input {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: 52px auto minmax(0, 1fr);
   align-items: center;
   min-width: 0;
-  gap: 12px;
+  gap: 8px;
   padding: 9px 3px;
   border-bottom: 1px solid var(--border, #ddd);
+  -webkit-user-select: none;
+  user-select: none;
 }
 .probability-diff-input:last-child { border-bottom: 0; }
-.probability-diff-input span { flex: 0 0 52px; font-size: 13px; font-weight: 700; }
-.probability-diff-input input { flex: 1 1 auto; }
+.probability-diff-input span { font-size: 13px; font-weight: 700; }
+.probability-diff-input .probability-diff-prefix {
+  font-size: 16px;
+  white-space: nowrap;
+  -webkit-user-select: none;
+  user-select: none;
+}
 .probability-diff-input input {
   box-sizing: border-box;
   width: 100%;

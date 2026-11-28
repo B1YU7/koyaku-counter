@@ -25,15 +25,15 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --page-bg: #151B25;
-  --surface: #242E3C;
-  --surface-soft: #1C2633;
+  --page-bg: #0F151E;
+  --surface: #1C2532;
+  --surface-soft: #151E2A;
 
   --text: #F2F4F8;
   --muted: #B9C4D2;
 
-  --border: #3B4655;
-  --input-bg: #1C2633;
+  --border: #34404E;
+  --input-bg: #151E2A;
 
   --selected-outline: #FFFFFF;
 }
@@ -191,7 +191,7 @@ body {
 :root[data-theme="dark"] .counter-work-area,
 :root[data-theme="dark"] .count-history-table-wrap,
 :root[data-theme="dark"] .color-picker-panel {
-  scrollbar-color: #AFBDD1 #2C394A;
+  scrollbar-color: #AFBDD1 #253142;
 }
 
 /* WebKit系ブラウザーでスクロールバーの色を指定する */
@@ -207,7 +207,7 @@ body {
 :root[data-theme="dark"] .counter-work-area::-webkit-scrollbar-track,
 :root[data-theme="dark"] .count-history-table-wrap::-webkit-scrollbar-track,
 :root[data-theme="dark"] .color-picker-panel::-webkit-scrollbar-track {
-  background: #2C394A;
+  background: #253142;
   border-radius: 10px;
 }
 
@@ -216,7 +216,7 @@ body {
 :root[data-theme="dark"] .count-history-table-wrap::-webkit-scrollbar-thumb,
 :root[data-theme="dark"] .color-picker-panel::-webkit-scrollbar-thumb {
   background: #AFBDD1;
-  border: 2px solid #2C394A;
+  border: 2px solid #253142;
   border-radius: 10px;
 }
 
@@ -224,5 +224,5 @@ body {
 :root[data-theme="dark"] .counter-work-area::-webkit-scrollbar-corner,
 :root[data-theme="dark"] .count-history-table-wrap::-webkit-scrollbar-corner,
 :root[data-theme="dark"] .color-picker-panel::-webkit-scrollbar-corner {
-  background: #2C394A;
+  background: #253142;
 }
